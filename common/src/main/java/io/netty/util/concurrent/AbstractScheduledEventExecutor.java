@@ -30,6 +30,9 @@ import java.util.concurrent.TimeUnit;
  * Abstract base class for {@link EventExecutor}s that want to support scheduling.
  */
 public abstract class AbstractScheduledEventExecutor extends AbstractEventExecutor {
+    /**
+     * 定时任务排序比较器
+     */
     private static final Comparator<ScheduledFutureTask<?>> SCHEDULED_FUTURE_TASK_COMPARATOR =
             new Comparator<ScheduledFutureTask<?>>() {
                 @Override
@@ -43,6 +46,9 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
        public void run() { } // Do nothing
     };
 
+    /**
+     * 定时任务（优先级）队列
+     */
     PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue;
 
     long nextTaskId;
@@ -152,6 +158,9 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         return scheduledTask != null ? scheduledTask.deadlineNanos() : -1;
     }
 
+    /**
+     * 获取队列中的首个定时任务。不会从队列中移除该任务
+     */
     final ScheduledFutureTask<?> peekScheduledTask() {
         Queue<ScheduledFutureTask<?>> scheduledTaskQueue = this.scheduledTaskQueue;
         return scheduledTaskQueue != null ? scheduledTaskQueue.peek() : null;
@@ -274,9 +283,11 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
     final void removeScheduled(final ScheduledFutureTask<?> task) {
         assert task.isCancelled();
         if (inEventLoop()) {
+            // 移除出定时任务队列
             scheduledTaskQueue().removeTyped(task);
         } else {
             // task will remove itself from scheduled task queue when it runs
+            // 任务运行时将其自生从任务队列中删除
             lazyExecute(task);
         }
     }

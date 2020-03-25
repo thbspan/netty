@@ -216,6 +216,7 @@ import java.util.NoSuchElementException;
 public interface ChannelPipeline
         extends ChannelInboundInvoker, ChannelOutboundInvoker, Iterable<Entry<String, ChannelHandler>> {
 
+    // ========== 添加 ChannelHandler 相关 ==========
     /**
      * Inserts a {@link ChannelHandler} at the first position of this pipeline.
      *
@@ -380,6 +381,7 @@ public interface ChannelPipeline
      */
     ChannelPipeline addLast(EventExecutorGroup group, ChannelHandler... handlers);
 
+    // ========== 移除 ChannelHandler 相关 ==========
     /**
      * Removes the specified {@link ChannelHandler} from this pipeline.
      *
@@ -441,6 +443,7 @@ public interface ChannelPipeline
      */
     ChannelHandler removeLast();
 
+    // ========== 替换 ChannelHandler 相关 ==========
     /**
      * Replaces the specified {@link ChannelHandler} with a new handler in this pipeline.
      *
@@ -503,6 +506,7 @@ public interface ChannelPipeline
     <T extends ChannelHandler> T replace(Class<T> oldHandlerType, String newName,
                                          ChannelHandler newHandler);
 
+    // ========== 查询 ChannelHandler 相关 ==========
     /**
      * Returns the first {@link ChannelHandler} in this pipeline.
      *
@@ -594,6 +598,7 @@ public interface ChannelPipeline
      */
     Map<String, ChannelHandler> toMap();
 
+    // ========== ChannelInboundInvoker 相关 ==========
     @Override
     ChannelPipeline fireChannelRegistered();
 
@@ -621,6 +626,7 @@ public interface ChannelPipeline
     @Override
     ChannelPipeline fireChannelWritabilityChanged();
 
+    // ========== ChannelOutboundInvoker 相关 ==========
     @Override
     ChannelPipeline flush();
 }

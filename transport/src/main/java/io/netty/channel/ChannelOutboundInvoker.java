@@ -192,6 +192,7 @@ public interface ChannelOutboundInvoker {
      * read, and triggers a
      * {@link ChannelInboundHandler#channelReadComplete(ChannelHandlerContext) channelReadComplete} event so the
      * handler can decide to continue reading.  If there's a pending read operation already, this method does nothing.
+     * 如果已经有一个待处理的读取操作，则此方法不执行任何操作。
      * <p>
      * This will result in having the
      * {@link ChannelOutboundHandler#read(ChannelHandlerContext)}

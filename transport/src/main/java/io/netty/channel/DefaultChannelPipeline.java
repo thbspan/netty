@@ -47,7 +47,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     static final InternalLogger logger = InternalLoggerFactory.getInstance(DefaultChannelPipeline.class);
 
+    /**
+     *  {@link #head} 的名字
+     */
     private static final String HEAD_NAME = generateName0(HeadContext.class);
+    /**
+     * {@link #tail} 的名字
+     */
     private static final String TAIL_NAME = generateName0(TailContext.class);
 
     private static final FastThreadLocal<Map<Class<?>, String>> nameCaches =
@@ -65,7 +71,15 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     final AbstractChannelHandlerContext tail;
 
     private final Channel channel;
+    /**
+     * 成功的Promise对象
+     */
     private final ChannelFuture succeededFuture;
+    /**
+     * 不进行通知的Promise对象
+     *
+     * 用于一些方法执行，需要传入 Promise 类型的方法参数，但是不需要进行通知，就传入该值
+     */
     private final VoidChannelPromise voidPromise;
     private final boolean touch = ResourceLeakDetector.isEnabled();
 
@@ -155,12 +169,14 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     @Override
     public final ChannelPipeline addFirst(EventExecutorGroup group, String name, ChannelHandler handler) {
         final AbstractChannelHandlerContext newCtx;
+        // synchronized同步 防止多线程并发的操作底层的双向链表
         synchronized (this) {
+            // 1、检查是否重复添加Handler
             checkMultiplicity(handler);
             name = filterName(name, handler);
-
+            // 2、创建节点
             newCtx = newContext(group, name, handler);
-
+            // 3、添加节点
             addFirst0(newCtx);
 
             // If the registered is false it means that the channel was not registered on an eventLoop yet.
@@ -178,6 +194,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return this;
             }
         }
+        // 4、回调用户方法
         callHandlerAdded0(newCtx);
         return this;
     }
@@ -198,16 +215,21 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     @Override
     public final ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
         final AbstractChannelHandlerContext newCtx;
+        // synchronized同步 防止多线程并发的操作底层的双向链表
         synchronized (this) {
+            // 1、检查是否重复添加Handler
             checkMultiplicity(handler);
-
+            // 2、创建节点
             newCtx = newContext(group, filterName(name, handler), handler);
-
+            // 3、添加节点
             addLast0(newCtx);
 
             // If the registered is false it means that the channel was not registered on an eventLoop yet.
             // In this case we add the context to the pipeline and add a task that will call
             // ChannelHandler.handlerAdded(...) once the channel is registered.
+            // channel未注册。这种情况，发生于 ServerBootstrap 启动的过程中
+            // 在 ServerBootstrap#init(Channel channel) 方法中，
+            // 会添加 ChannelInitializer 对象到 pipeline 中，恰好此时 Channel 并未注册。
             if (!registered) {
                 newCtx.setAddPending();
                 callHandlerCallbackLater(newCtx, true);
@@ -220,6 +242,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return this;
             }
         }
+        // 4、回调用户方法
         callHandlerAdded0(newCtx);
         return this;
     }
@@ -453,6 +476,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         assert ctx != head && ctx != tail;
 
         synchronized (this) {
+            // 调整双向链表指针
             atomicRemoveFromHandlerList(ctx);
 
             // If the registered is false it means that the channel was not registered on an eventloop yet.
@@ -474,6 +498,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return ctx;
             }
         }
+        // 回调用户函数
         callHandlerRemoved0(ctx);
         return ctx;
     }

@@ -20,6 +20,8 @@ import java.util.Queue;
 public interface PriorityQueue<T> extends Queue<T> {
     /**
      * Same as {@link #remove(Object)} but typed using generics.
+     *
+     * 与remove（Object）相同，但使用泛型参数
      */
     boolean removeTyped(T node);
 

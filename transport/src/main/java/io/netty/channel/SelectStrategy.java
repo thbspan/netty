@@ -27,10 +27,14 @@ public interface SelectStrategy {
 
     /**
      * Indicates a blocking select should follow.
+     *
+     * 表示使用阻塞 select 的策略
      */
     int SELECT = -1;
     /**
      * Indicates the IO loop should be retried, no blocking select to follow directly.
+     *
+     * 表示需要进行重试的策略
      */
     int CONTINUE = -2;
     /**
@@ -42,6 +46,7 @@ public interface SelectStrategy {
      * The {@link SelectStrategy} can be used to steer the outcome of a potential select
      * call.
      *
+     * >= 0 ，表示不需要 select ，目前已经有可以执行的任务了
      * @param selectSupplier The supplier with the result of a select result.
      * @param hasTasks true if tasks are waiting to be processed.
      * @return {@link #SELECT} if the next step should be blocking select {@link #CONTINUE} if
