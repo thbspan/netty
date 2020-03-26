@@ -19,6 +19,14 @@ import io.netty.util.internal.PlatformDependent;
 
 import java.nio.ByteBuffer;
 
+/**
+ * 和 UnpooledUnsafeDirectByteBuf 最大区别在于 UnpooledUnsafeNoCleanerDirectByteBuf
+ * 在 allocate 的时候通过反射构造函数的方式创建 DirectByteBuffer，
+ * 这样在DirectByteBuffer中没有对应的Cleaner函数(通过ByteBuffer.allocateDirect的方式会自动生成Cleaner函数，
+ * Cleaner用于内存回收，具体可以看源码)，
+ * 内存回收时，UnpooledUnsafeDirectByteBuf通过调用DirectByteBuffer中的Cleaner函数回收，
+ * 而UnpooledUnsafeNoCleanerDirectByteBuf直接使用UNSAFE.freeMemory(address)释放内存地址。
+ */
 class UnpooledUnsafeNoCleanerDirectByteBuf extends UnpooledUnsafeDirectByteBuf {
 
     UnpooledUnsafeNoCleanerDirectByteBuf(ByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
@@ -27,15 +35,18 @@ class UnpooledUnsafeNoCleanerDirectByteBuf extends UnpooledUnsafeDirectByteBuf {
 
     @Override
     protected ByteBuffer allocateDirect(int initialCapacity) {
+        // 反射，直接创建 ByteBuffer 对象。并且该对象不带 Cleaner 对象
         return PlatformDependent.allocateDirectNoCleaner(initialCapacity);
     }
 
     ByteBuffer reallocateDirect(ByteBuffer oldBuffer, int initialCapacity) {
+        // reallocate 重新分配
         return PlatformDependent.reallocateDirectNoCleaner(oldBuffer, initialCapacity);
     }
 
     @Override
     protected void freeDirect(ByteBuffer buffer) {
+        // 直接释放 ByteBuffer 对象
         PlatformDependent.freeDirectNoCleaner(buffer);
     }
 

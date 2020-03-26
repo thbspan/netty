@@ -27,7 +27,17 @@ import java.nio.ByteBuffer;
 public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator implements ByteBufAllocatorMetricProvider {
 
     private final UnpooledByteBufAllocatorMetric metric = new UnpooledByteBufAllocatorMetric();
+    /**
+     * 是否禁用内存泄漏检测功能
+     */
     private final boolean disableLeakDetector;
+    /**
+     * 不使用 `io.netty.util.internal.Cleaner` 释放 Direct ByteBuf
+     *
+     * 默认为 true
+     * @see UnpooledUnsafeNoCleanerDirectByteBuf
+     * @see InstrumentedUnpooledUnsafeNoCleanerDirectByteBuf
+     */
     private final boolean noCleaner;
 
     /**
@@ -134,6 +144,9 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         metric.heapCounter.add(-amount);
     }
 
+    /**
+     * 在原先的基础上，增加了 Metric 相应的增减操作方法，可以记录Heap占用的大小
+     */
     private static final class InstrumentedUnpooledUnsafeHeapByteBuf extends UnpooledUnsafeHeapByteBuf {
         InstrumentedUnpooledUnsafeHeapByteBuf(UnpooledByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
             super(alloc, initialCapacity, maxCapacity);
@@ -204,6 +217,9 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         }
     }
 
+    /**
+     * 增加了记录Direct内存占用的操作
+     */
     private static final class InstrumentedUnpooledUnsafeDirectByteBuf extends UnpooledUnsafeDirectByteBuf {
         InstrumentedUnpooledUnsafeDirectByteBuf(
                 UnpooledByteBufAllocator alloc, int initialCapacity, int maxCapacity) {

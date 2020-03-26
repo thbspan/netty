@@ -107,22 +107,86 @@ final class PoolChunk<T> implements PoolChunkMetric {
 
     private static final int INTEGER_SIZE_MINUS_ONE = Integer.SIZE - 1;
 
+    /**
+     * 所属 Arena 对象
+     */
     final PoolArena<T> arena;
+    /**
+     * 内存空间
+     */
     final T memory;
+    /**
+     * 是否非池化
+     *
+     * @see #PoolChunk(PoolArena, Object, int, int, int, int, int) 池化
+     *
+     * @see #PoolChunk(PoolArena, Object, int, int) 非池化。
+     *     当申请的内存大小为 Huge 类型时，创建一整块 Chunk ，并且不拆分成若干 Page
+     *
+     * unpooled = false，池化 ，对应构造函数一
+     *     默认情况下，对于分配16M以内的内存空间时，Netty 会分配一个 Normal 类型的 Chunk块。
+     *     并且，该Chunk块在使用完成后，进行池化缓存，重复使用
+     * unpooled = true，非池化，对应构造函数二
+     *     默认情况下，对于分配 16M 以上的内存空间时，Netty 会分配一个 Huge 类型的特殊的 Chunk块。
+     *     并且，由于 Huge 类型的 Chunk 占用内存空间较大，比较特殊，所以该 Chunk 块在使用完后，立即释放，不进行重复使用
+     */
     final boolean unpooled;
     final int offset;
+    /**
+     * 分配信息满二叉树
+     *
+     * index 为节点编号
+     */
     private final byte[] memoryMap;
+    /**
+     * 高度信息满二叉树
+     *
+     * index 为节点编号
+     */
     private final byte[] depthMap;
+    /**
+     * PoolSubpage 数组
+     */
     private final PoolSubpage<T>[] subpages;
-    /** Used to determine if the requested capacity is equal to or greater than pageSize. */
+    /**
+     * 判断分配请求内存是否为 Tiny/Small ，即分配 Subpage 内存块
+     *
+     * 默认-8192
+     *
+     * Used to determine if the requested capacity is equal to or greater than pageSize.
+     */
     private final int subpageOverflowMask;
+    /**
+     * Page 大小，默认 8KB = 8192B
+     */
     private final int pageSize;
+    /**
+     * 从1开始左移到{@link #pageSize}的位置。默认13，1<<13=8192
+     *
+     * 具体用途，见 {@link #allocateRun(int)} 方法，计算指定容量所在满二叉树的层级
+     */
     private final int pageShifts;
+    /**
+     * 满二叉树的高度，默认为 11
+     */
     private final int maxOrder;
+    /**
+     * Chunk 内存卡占用大小。默认为 16M = 16 * 1024
+     */
     private final int chunkSize;
+    /**
+     * log2 {@link #chunkSize} 的结果。默认为 log2( 16M ) = 24
+     */
     private final int log2ChunkSize;
+    /**
+     * 可分配 {@link #subpages} 的数量，即数组大小。默认为 1 << maxOrder = 1 << 11 = 2048
+     */
     private final int maxSubpageAllocs;
-    /** Used to mark memory as unusable */
+    /**
+     * 标记节点不可用。默认为 {@link #maxOrder} + 1 = 12
+     *
+     * Used to mark memory as unusable
+     */
     private final byte unusable;
 
     // Use as cache for ByteBuffer created from the memory. These are just duplicates and so are only a container
@@ -132,10 +196,22 @@ final class PoolChunk<T> implements PoolChunkMetric {
     // This may be null if the PoolChunk is unpooled as pooling the ByteBuffer instances does not make any sense here.
     private final Deque<ByteBuffer> cachedNioBuffers;
 
+    /**
+     * 剩余可用字节数
+     */
     private int freeBytes;
 
+    /**
+     * 所属 PoolChunkList 对象
+     */
     PoolChunkList<T> parent;
+    /**
+     * 上一个 Chunk 对象
+     */
     PoolChunk<T> prev;
+    /**
+     * 下一个 Chunk 对象
+     */
     PoolChunk<T> next;
 
     // TODO: Test if adding padding helps under contention
@@ -224,9 +300,11 @@ final class PoolChunk<T> implements PoolChunkMetric {
 
     boolean allocate(PooledByteBuf<T> buf, int reqCapacity, int normCapacity) {
         final long handle;
+        // 大于等于Page大小，分配Page内存块
         if ((normCapacity & subpageOverflowMask) != 0) { // >= pageSize
             handle =  allocateRun(normCapacity);
         } else {
+            // 小于Page大小，分配Subpage内存块
             handle = allocateSubpage(normCapacity);
         }
 
@@ -320,11 +398,15 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * @return index in memoryMap
      */
     private long allocateRun(int normCapacity) {
+        // 获得层级
         int d = maxOrder - (log2(normCapacity) - pageShifts);
+        // 获取节点
         int id = allocateNode(d);
         if (id < 0) {
+            // 未获得节点，直接返回
             return id;
         }
+        // 减少剩余可用字节数
         freeBytes -= runLength(id);
         return id;
     }
@@ -333,17 +415,21 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * Create / initialize a new PoolSubpage of normCapacity
      * Any PoolSubpage created / initialized here is added to subpage pool in the PoolArena that owns this PoolChunk
      *
+     * 分配Subpage内存块
      * @param normCapacity normalized capacity
      * @return index in memoryMap
      */
     private long allocateSubpage(int normCapacity) {
+        // 获得相应内存规格的Subpage双向链表的head节点
         // Obtain the head of the PoolSubPage pool that is owned by the PoolArena and synchronize on it.
         // This is need as we may add it back and so alter the linked-list structure.
         PoolSubpage<T> head = arena.findSubpagePoolHead(normCapacity);
         int d = maxOrder; // subpages are only be allocated from pages i.e., leaves
+        // 加锁，分配过程会修改双向链表的结构，会存在多线程的情况
         synchronized (head) {
             int id = allocateNode(d);
             if (id < 0) {
+                // 获取失败
                 return id;
             }
 
