@@ -60,6 +60,9 @@ import java.util.concurrent.TimeUnit;
  * bootstrap.childHandler(new MyChannelInitializer());
  * ...
  * </pre>
+ * 当一个写操作不能够在指定时间内完成时，抛出{@link WriteTimeoutException}异常
+ * 并自动关闭对应的{@link Channel}
+ *
  * @see ReadTimeoutHandler
  * @see IdleStateHandler
  */
@@ -69,10 +72,16 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
     private final long timeoutNanos;
 
     /**
+     * WriteTimeoutTask双向链表
+     *
+     * lastTask 为链表的尾节点
      * A doubly-linked list to track all WriteTimeoutTasks
      */
     private WriteTimeoutTask lastTask;
 
+    /**
+     * {@link Channel}是否关闭
+     */
     private boolean closed;
 
     /**
@@ -131,9 +140,11 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
         task.scheduledFuture = ctx.executor().schedule(task, timeoutNanos, TimeUnit.NANOSECONDS);
 
         if (!task.scheduledFuture.isDone()) {
+            // 添加到链表
             addWriteTimeoutTask(task);
 
             // Cancel the scheduled timeout if the flush promise is complete.
+            // 将task作为监听器，添加到promise中。在写入完成后，可以移除该定时热任务
             promise.addListener(task);
         }
     }
@@ -200,13 +211,16 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
             // Was not written yet so issue a write timeout
             // The promise itself will be failed with a ClosedChannelException once the close() was issued
             // See https://github.com/netty/netty/issues/2159
+            // 写入未完成，说明写入超时
             if (!promise.isDone()) {
                 try {
+                    // 触发写入超时事件并关闭该 channnel
                     writeTimedOut(ctx);
                 } catch (Throwable t) {
                     ctx.fireExceptionCaught(t);
                 }
             }
+            // 移除出链表
             removeWriteTimeoutTask(this);
         }
 
