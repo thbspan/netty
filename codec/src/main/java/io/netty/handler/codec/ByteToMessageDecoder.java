@@ -76,6 +76,8 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
     /**
      * Cumulate {@link ByteBuf}s by merge them into one {@link ByteBuf}'s, using memory copies.
+     *
+     * 使用内存复制方式，不断使用老的{@link ByteBuf}累积。如果空间不够，扩容出新的{@link ByteBuf}
      */
     public static final Cumulator MERGE_CUMULATOR = new Cumulator() {
         @Override
@@ -94,6 +96,9 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     // - cumulation cannot be resized to accommodate the additional data
                     // - cumulation can be expanded with a reallocation operation to accommodate but the buffer is
                     //   assumed to be shared (e.g. refCnt() > 1) and the reallocation may not be safe.
+                    // 超过空间大小，需要扩容
+                    // 引用大于 1
+                    // 只读，不可累加，需要改成可读可写
                     return expandCumulation(alloc, cumulation, in);
                 }
                 cumulation.writeBytes(in, in.readerIndex(), required);
@@ -549,6 +554,11 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
          * Cumulate the given {@link ByteBuf}s and return the {@link ByteBuf} that holds the cumulated bytes.
          * The implementation is responsible to correctly handle the life-cycle of the given {@link ByteBuf}s and so
          * call {@link ByteBuf#release()} if a {@link ByteBuf} is fully consumed.
+         *
+         * @param alloc {@link ByteBuf}分配器
+         * @param cumulation 当前累积结果
+         * @param in 当前读取( 输入 ) ByteBuf
+         * @return ByteBuf 新的累积结果
          */
         ByteBuf cumulate(ByteBufAllocator alloc, ByteBuf cumulation, ByteBuf in);
     }
