@@ -101,6 +101,10 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
 
     /**
      * {@inheritDoc} If override this method ensure you call super!
+     * 绝大多数情况下，因为ChannelRegistered事件触发在Added之后触发，
+     * 如果在{@link #handlerAdded}方法中初始化完成了{@link Channel}，
+     * 那么 ChannelInitializer 便会从 pipeline 中移除。也就是说不会执行
+     * {@link #channelRegistered}方法
      */
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {

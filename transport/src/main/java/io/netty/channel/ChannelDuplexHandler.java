@@ -21,7 +21,7 @@ import java.net.SocketAddress;
 
 /**
  * {@link ChannelHandler} implementation which represents a combination out of a {@link ChannelInboundHandler} and
- * the {@link ChannelOutboundHandler}.
+ * the {@link ChannelOutboundHandler}.(Duplex 双重)
  *
  * It is a good starting point if your {@link ChannelHandler} implementation needs to intercept operations and also
  * state updates.
