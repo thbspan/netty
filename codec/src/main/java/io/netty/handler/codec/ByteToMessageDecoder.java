@@ -78,6 +78,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * Cumulate {@link ByteBuf}s by merge them into one {@link ByteBuf}'s, using memory copies.
      *
      * 使用内存复制方式，不断使用老的{@link ByteBuf}累积。如果空间不够，扩容出新的{@link ByteBuf}
+     *
      */
     public static final Cumulator MERGE_CUMULATOR = new Cumulator() {
         @Override
@@ -156,9 +157,25 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     private static final byte STATE_CALLING_CHILD_DECODE = 1;
     private static final byte STATE_HANDLER_REMOVED_PENDING = 2;
 
+    /**
+     * 已累计的 {@link ByteBuf }对象
+     */
     ByteBuf cumulation;
+    /**
+     * 累加器，默认{@link #MERGE_CUMULATOR}
+     */
     private Cumulator cumulator = MERGE_CUMULATOR;
+    /**
+     * 是否每次只解码一条消息，默认 {@code false}
+     *
+     * 部分解码器为{@code true}，like Socks4ClientDecoder
+     *
+     * @see #callDecode(ChannelHandlerContext, ByteBuf, List)
+     */
     private boolean singleDecode;
+    /**
+     * 是否首次读取，即{@link #cumulation}为空
+     */
     private boolean first;
 
     /**
@@ -170,16 +187,24 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     /**
      * A bitmask where the bits are defined as
      * <ul>
-     *     <li>{@link #STATE_INIT}</li>
-     *     <li>{@link #STATE_CALLING_CHILD_DECODE}</li>
-     *     <li>{@link #STATE_HANDLER_REMOVED_PENDING}</li>
+     *     <li>{@link #STATE_INIT} 初始化</li>
+     *     <li>{@link #STATE_CALLING_CHILD_DECODE} 调用{@link #decode(ChannelHandlerContext, ByteBuf, List)} 方法中，正在进行解码</li>
+     *     <li>{@link #STATE_HANDLER_REMOVED_PENDING} 准备移除</li>
      * </ul>
      */
     private byte decodeState = STATE_INIT;
+    /**
+     * 读取释放阈值
+     */
     private int discardAfterReads = 16;
+    /**
+     * 已读取次数
+     * 再读取{@link #discardAfterReads}次数据后，如果无法全部解析完成，则进行释放，避免 OOM
+     */
     private int numReads;
 
     protected ByteToMessageDecoder() {
+        // 校验，不可共享
         ensureNotSharable();
     }
 
@@ -301,6 +326,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 out.recycle();
             }
         } else {
+            // 触发 Channel Read 事件到下一个节点，也就是不进行解码
             ctx.fireChannelRead(msg);
         }
     }
@@ -329,7 +355,9 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        // 已读取次数清零
         numReads = 0;
+        // 丢弃已读数据，节约内存
         discardSomeReadBytes();
         if (!firedChannelRead && !ctx.channel().config().isAutoRead()) {
             ctx.read();
@@ -423,6 +451,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             while (in.isReadable()) {
                 int outSize = out.size();
 
+                // out非空，说明上一次解码有解码到消息
                 if (outSize > 0) {
                     fireChannelRead(ctx, out, outSize);
                     out.clear();
@@ -438,7 +467,10 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     outSize = 0;
                 }
 
+                // 记录当前可读的字节数
                 int oldInputLength = in.readableBytes();
+
+                // 执行解码。如果handler准备移除，在解码完成后，进行移除
                 decodeRemovalReentryProtection(ctx, in, out);
 
                 // Check if this handler was removed before continuing the loop.
@@ -449,20 +481,27 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     break;
                 }
 
+                // outSize >0 会被设置为 0，所以这里等价于 out.size() == 0
                 if (outSize == out.size()) {
                     if (oldInputLength == in.readableBytes()) {
+                        // 没有解码出消息，且没读取任何 in 数据
                         break;
                     } else {
+                        // 读取了一部分数据但没有解码出消息
+                        // 说明需要更多的数据，故继续
                         continue;
                     }
                 }
 
+                // 执行到这里 out.size() >0，说明已经解码出消息了
                 if (oldInputLength == in.readableBytes()) {
+                    // 解码出消息但是in的读索引不变，说明用户的decode方法有bug
                     throw new DecoderException(
                             StringUtil.simpleClassName(getClass()) +
                                     ".decode() did not read anything but decoded a message.");
                 }
 
+                // 如果设置一个 channelRead 事件只解码一次，则跳出循环
                 if (isSingleDecode()) {
                     break;
                 }

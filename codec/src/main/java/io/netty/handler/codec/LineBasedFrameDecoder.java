@@ -39,13 +39,30 @@ public class LineBasedFrameDecoder extends ByteToMessageDecoder {
     private final int maxLength;
     /** Whether or not to throw an exception as soon as we exceed maxLength. */
     private final boolean failFast;
+    /**
+     * 是否略过分隔符
+     *
+     * true ：不含分隔符
+     * false：包含分隔符
+     */
     private final boolean stripDelimiter;
 
-    /** True if we're discarding input because we're already over maxLength.  */
+    /**
+     * True if we're discarding input because we're already over maxLength.
+     *
+     * <p>
+     *
+     * {@code true} 超过最大长度丢弃字节，表示解码当中的一个状态，默认{@code false}
+     */
     private boolean discarding;
+    /**
+     * 丢弃的字节数
+     */
     private int discardedBytes;
 
-    /** Last scan position. */
+    /**
+     * Last scan position.
+     */
     private int offset;
 
     /**
