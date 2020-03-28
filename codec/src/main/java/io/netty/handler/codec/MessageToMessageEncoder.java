@@ -92,6 +92,7 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
                 }
 
                 if (out.isEmpty()) {
+                    // 回收再循环利用
                     out.recycle();
                     out = null;
 

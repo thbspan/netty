@@ -81,15 +81,18 @@ public abstract class MessageToMessageDecoder<I> extends ChannelInboundHandlerAd
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         CodecOutputList out = CodecOutputList.newInstance();
         try {
+            // 判断是否为匹配的消息
             if (acceptInboundMessage(msg)) {
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
                 try {
                     decode(ctx, cast, out);
                 } finally {
+                    // 释放 cast 原消息
                     ReferenceCountUtil.release(cast);
                 }
             } else {
+                // 不匹配，添加到 out
                 out.add(msg);
             }
         } catch (DecoderException e) {
