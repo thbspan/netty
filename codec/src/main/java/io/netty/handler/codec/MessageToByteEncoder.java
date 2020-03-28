@@ -45,7 +45,13 @@ import io.netty.util.internal.TypeParameterMatcher;
  */
 public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdapter {
 
+    /**
+     * 类型匹配器
+     */
     private final TypeParameterMatcher matcher;
+    /**
+     * 是否偏向使用 Direct 内存
+     */
     private final boolean preferDirect;
 
     /**
@@ -109,14 +115,20 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
                     ReferenceCountUtil.release(cast);
                 }
 
+                // buf 可读，说明有编码到数据
                 if (buf.isReadable()) {
+                    // 写入 buf 到下一个节点
                     ctx.write(buf, promise);
                 } else {
+                    // 释放 buf
                     buf.release();
+                    // 写入 EMPTY_BUFFER 到下一个节点，为了 promise 的回调
                     ctx.write(Unpooled.EMPTY_BUFFER, promise);
                 }
+                // 置空 buf
                 buf = null;
             } else {
+                // 提交 write 事件给下一个节点
                 ctx.write(msg, promise);
             }
         } catch (EncoderException e) {
