@@ -309,6 +309,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             } catch (Exception e) {
                 throw new DecoderException(e);
             } finally {
+                // cumulation 中所有数据被读取完(执行callDecode会读取数据)，直接释放全部
                 if (cumulation != null && !cumulation.isReadable()) {
                     numReads = 0;
                     cumulation.release();
@@ -484,7 +485,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 // outSize >0 会被设置为 0，所以这里等价于 out.size() == 0
                 if (outSize == out.size()) {
                     if (oldInputLength == in.readableBytes()) {
-                        // 没有解码出消息，且没读取任何 in 数据
+                        // 没有解码出消息，且没读取任何 in 数据，结束巡抚
                         break;
                     } else {
                         // 读取了一部分数据但没有解码出消息
@@ -529,6 +530,8 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * Decode the from one {@link ByteBuf} to an other. This method will be called till either the input
      * {@link ByteBuf} has nothing to read when return from this method or till nothing was read from the input
      * {@link ByteBuf}.
+     *
+     * 执行解码，如果Handle准备移除，在解码完成后，进行移除
      *
      * @param ctx           the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs to
      * @param in            the {@link ByteBuf} from which to read data
