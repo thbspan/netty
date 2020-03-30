@@ -188,7 +188,8 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * A bitmask where the bits are defined as
      * <ul>
      *     <li>{@link #STATE_INIT} 初始化</li>
-     *     <li>{@link #STATE_CALLING_CHILD_DECODE} 调用{@link #decode(ChannelHandlerContext, ByteBuf, List)} 方法中，正在进行解码</li>
+     *     <li>{@link #STATE_CALLING_CHILD_DECODE} 调用{@link #decode(ChannelHandlerContext, ByteBuf, List)} 方法中，
+     *          正在进行解码</li>
      *     <li>{@link #STATE_HANDLER_REMOVED_PENDING} 准备移除</li>
      * </ul>
      */
