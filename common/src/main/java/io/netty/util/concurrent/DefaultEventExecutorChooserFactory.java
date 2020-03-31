@@ -39,6 +39,9 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
         }
     }
 
+    /**
+     * 判断一个数是否时2的幂次方的方法
+     */
     private static boolean isPowerOfTwo(int val) {
         return (val & -val) == val;
     }
