@@ -96,6 +96,14 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private final Set<Runnable> shutdownHooks = new LinkedHashSet<Runnable>();
     /**
      * 添加任务后，任务是否会导致线程唤醒
+     * <p>
+     *     对于 NioEventLoop ，线程执行基于Selector监听感兴趣的事件，当添加任务后，线程是无感知的，
+     *      *      所以是{@code false}，需要调用{@link #wakeup(boolean)}
+     * </p>
+     *  <p>
+     *      对于 Oio ，他的线程执行它的线程执行是基于 taskQueue 队列监听( 阻塞拉取 )事件和任务，
+     *      所以当任务添加到 taskQueue 队列中时，线程是可感知的，所以是 {@code true}
+     *  </p>
      */
     private final boolean addTaskWakesUp;
     /**
@@ -106,6 +114,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     private long lastExecutionTime;
 
+    /**
+     * 线程状态
+     */
     @SuppressWarnings({ "FieldMayBeFinal", "unused" })
     private volatile int state = ST_NOT_STARTED;
 
