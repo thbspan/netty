@@ -37,6 +37,8 @@ public interface EventExecutor extends EventExecutorGroup {
 
     /**
      * Return the {@link EventExecutorGroup} which is the parent of this {@link EventExecutor},
+     *
+     * 返回所属的{@link EventExecutorGroup
      */
     EventExecutorGroup parent();
 
