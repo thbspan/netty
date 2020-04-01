@@ -939,6 +939,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     * 读消息方法处理
+     * <b>从代码实现可以看出，读消息顺序 head -> tail</b>
+     */
     @Override
     public final ChannelPipeline fireChannelRead(Object msg) {
         AbstractChannelHandlerContext.invokeChannelRead(head, msg);
@@ -1030,6 +1034,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return this;
     }
 
+    /**
+     * 写出消息
+     * <b>从代码实现可以看出，写消息从tail -> head</b>
+     */
     @Override
     public final ChannelFuture write(Object msg) {
         return tail.write(msg);
