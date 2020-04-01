@@ -43,6 +43,8 @@ import static io.netty.util.internal.ObjectUtil.checkPositiveOrZero;
 
 /**
  * A skeletal implementation of a buffer.
+ *
+ * {@link ByteBuf} 的顶级抽象实现类，抽取了通用的属性和方法
  */
 public abstract class AbstractByteBuf extends ByteBuf {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractByteBuf.class);
@@ -728,8 +730,10 @@ public abstract class AbstractByteBuf extends ByteBuf {
 
     @Override
     public byte readByte() {
+        // 检查是否可以读取1个字节
         checkReadableBytes0(1);
         int i = readerIndex;
+        // 获取readerIndex下标所指示的字节内容，抽象方法，留给子类实现
         byte b = _getByte(i);
         readerIndex = i + 1;
         return b;
