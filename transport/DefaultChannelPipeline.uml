@@ -11,12 +11,6 @@
   </nodes>
   <notes />
   <edges>
-    <edge source="io.netty.channel.ChannelPipeline" target="java.lang.Iterable">
-      <point x="-56.0" y="-26.5" />
-      <point x="184.0" y="78.0" />
-      <point x="56.0" y="78.0" />
-      <point x="0.0" y="26.5" />
-    </edge>
     <edge source="io.netty.channel.ChannelPipeline" target="io.netty.channel.ChannelOutboundInvoker">
       <point x="56.0" y="-26.5" />
       <point x="296.0" y="78.0" />
@@ -27,12 +21,18 @@
       <point x="0.0" y="-26.5" />
       <point x="0.0" y="26.5" />
     </edge>
+    <edge source="io.netty.channel.ChannelPipeline" target="java.lang.Iterable">
+      <point x="-56.0" y="-26.5" />
+      <point x="184.0" y="78.0" />
+      <point x="56.0" y="78.0" />
+      <point x="0.0" y="26.5" />
+    </edge>
     <edge source="io.netty.channel.DefaultChannelPipeline" target="io.netty.channel.ChannelPipeline">
       <point x="0.0" y="-26.5" />
       <point x="0.0" y="26.5" />
     </edge>
   </edges>
-  <settings layout="Hierarchic Group" zoom="1.0" x="296.0" y="129.5" />
+  <settings layout="Hierarchic Group" zoom="1.0" x="295.0" y="118.0" />
   <SelectedNodes>
     <node>io.netty.channel.DefaultChannelPipeline</node>
   </SelectedNodes>

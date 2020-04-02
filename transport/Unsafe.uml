@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>io.netty.channel.Channel.Unsafe</OriginalElement>
+  <nodes>
+    <node x="78.25" y="80.0">io.netty.channel.AbstractChannel.AbstractUnsafe</node>
+    <node x="155.0" y="0.0">io.netty.channel.Channel.Unsafe</node>
+    <node x="0.0" y="320.0">io.netty.channel.socket.nio.NioSocketChannel.NioSocketChannelUnsafe</node>
+    <node x="206.0" y="240.0">io.netty.channel.nio.AbstractNioMessageChannel.NioMessageUnsafe</node>
+    <node x="111.0" y="160.0">io.netty.channel.nio.AbstractNioChannel.AbstractNioUnsafe</node>
+    <node x="36.0" y="240.0">io.netty.channel.nio.AbstractNioByteChannel.NioByteUnsafe</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="io.netty.channel.nio.AbstractNioMessageChannel.NioMessageUnsafe" target="io.netty.channel.nio.AbstractNioChannel.AbstractNioUnsafe">
+      <point x="0.0" y="-15.0" />
+      <point x="293.0" y="215.0" />
+      <point x="247.5" y="215.0" />
+      <point x="45.5" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.nio.AbstractNioChannel.AbstractNioUnsafe" target="io.netty.channel.Channel.Unsafe">
+      <point x="45.5" y="-15.0" />
+      <point x="246.75" y="55.0" />
+      <point x="225.5" y="55.0" />
+      <point x="23.5" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.socket.nio.NioSocketChannel.NioSocketChannelUnsafe" target="io.netty.channel.nio.AbstractNioByteChannel.NioByteUnsafe">
+      <point x="0.0" y="-15.0" />
+      <point x="0.0" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.nio.AbstractNioByteChannel.NioByteUnsafe" target="io.netty.channel.nio.AbstractNioChannel.AbstractNioUnsafe">
+      <point x="0.0" y="-15.0" />
+      <point x="111.0" y="215.0" />
+      <point x="156.5" y="215.0" />
+      <point x="-45.5" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.nio.AbstractNioChannel.AbstractNioUnsafe" target="io.netty.channel.AbstractChannel.AbstractUnsafe">
+      <point x="-45.5" y="-15.0" />
+      <point x="0.0" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.AbstractChannel.AbstractUnsafe" target="io.netty.channel.Channel.Unsafe">
+      <point x="0.0" y="-15.0" />
+      <point x="157.25" y="55.0" />
+      <point x="178.5" y="55.0" />
+      <point x="-23.5" y="15.0" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="-188.0" y="15.0" />
+  <SelectedNodes>
+    <node>io.netty.channel.Channel.Unsafe</node>
+  </SelectedNodes>
+  <Categories>
+    <Category>Inner Classes</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

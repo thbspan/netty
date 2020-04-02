@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>io.netty.channel.ChannelHandlerContext</OriginalElement>
+  <nodes>
+    <node x="203.20000000000002" y="80.0">io.netty.channel.ChannelHandlerContext</node>
+    <node x="508.0" y="160.0">io.netty.util.DefaultAttributeMap.DefaultAttribute</node>
+    <node x="488.5" y="0.0">io.netty.util.AttributeMap</node>
+    <node x="0.0" y="240.0">io.netty.channel.AbstractChannelHandlerContext.WriteTask</node>
+    <node x="496.0" y="80.0">io.netty.util.DefaultAttributeMap</node>
+    <node x="444.8083333333333" y="240.0">io.netty.channel.DefaultChannelPipeline.HeadContext</node>
+    <node x="0.8083333333333371" y="240.0">io.netty.channel.DefaultChannelPipeline.TailContext</node>
+    <node x="0.0" y="0.0">io.netty.channel.ChannelOutboundInvoker</node>
+    <node x="171.20000000000002" y="160.0">io.netty.channel.AbstractChannelHandlerContext</node>
+    <node x="154.8083333333333" y="240.0">io.netty.channel.DefaultChannelHandlerContext</node>
+    <node x="428.0" y="240.0">io.netty.channel.AbstractChannelHandlerContext.Tasks</node>
+    <node x="242.0" y="0.0">io.netty.channel.ChannelInboundInvoker</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="io.netty.channel.AbstractChannelHandlerContext.WriteTask" target="io.netty.channel.AbstractChannelHandlerContext">
+      <point x="0.0" y="-15.0" />
+      <point x="59.0" y="210.0" />
+      <point x="359.80000000000007" y="210.0" />
+      <point x="-111.19999999999999" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.AbstractChannelHandlerContext.Tasks" target="io.netty.channel.AbstractChannelHandlerContext">
+      <point x="0.0" y="-15.0" />
+      <point x="0.0" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.AbstractChannelHandlerContext" target="io.netty.channel.ChannelHandlerContext">
+      <point x="0.0" y="-15.0" />
+      <point x="0.0" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.DefaultChannelHandlerContext" target="io.netty.channel.AbstractChannelHandlerContext">
+      <point x="0.0" y="-15.0" />
+      <point x="289.8083333333333" y="215.0" />
+      <point x="310.20000000000005" y="215.0" />
+      <point x="0.0" y="15.0" />
+    </edge>
+    <edge source="io.netty.util.DefaultAttributeMap.DefaultAttribute" target="io.netty.util.DefaultAttributeMap">
+      <point x="0.0" y="-15.0" />
+      <point x="0.0" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.ChannelHandlerContext" target="io.netty.channel.ChannelOutboundInvoker">
+      <point x="-71.33333333333331" y="-15.0" />
+      <point x="238.8666666666667" y="55.0" />
+      <point x="111.0" y="55.0" />
+      <point x="0.0" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.DefaultChannelPipeline.TailContext" target="io.netty.channel.AbstractChannelHandlerContext">
+      <point x="0.0" y="-15.0" />
+      <point x="67.80833333333334" y="215.0" />
+      <point x="217.53333333333333" y="215.0" />
+      <point x="-92.66666666666669" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.DefaultChannelPipeline.HeadContext" target="io.netty.channel.AbstractChannelHandlerContext">
+      <point x="0.0" y="-15.0" />
+      <point x="511.8083333333333" y="215.0" />
+      <point x="402.8666666666667" y="215.0" />
+      <point x="92.66666666666669" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.ChannelHandlerContext" target="io.netty.util.AttributeMap">
+      <point x="71.33333333333331" y="-15.0" />
+      <point x="381.5333333333333" y="55.0" />
+      <point x="524.0" y="55.0" />
+      <point x="-35.5" y="15.0" />
+    </edge>
+    <edge source="io.netty.util.DefaultAttributeMap" target="io.netty.util.AttributeMap">
+      <point x="0.0" y="-15.0" />
+      <point x="35.5" y="15.0" />
+    </edge>
+    <edge source="io.netty.channel.ChannelHandlerContext" target="io.netty.channel.ChannelInboundInvoker">
+      <point x="0.0" y="-15.0" />
+      <point x="310.20000000000005" y="55.0" />
+      <point x="349.0" y="55.0" />
+      <point x="0.0" y="15.0" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="347.0" y="135.0" />
+  <SelectedNodes />
+  <Categories>
+    <Category>Inner Classes</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

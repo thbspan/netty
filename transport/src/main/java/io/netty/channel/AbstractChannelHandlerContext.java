@@ -826,6 +826,8 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     }
 
     private void notifyHandlerException(Throwable cause) {
+        // 如果是在 ChannelHandler#exceptionCaught(ChannelHandlerContext ctx, Throwable cause) 方法中，
+        // 仅打印错误日志。否则会形成死循环
         if (inExceptionCaught(cause)) {
             if (logger.isWarnEnabled()) {
                 logger.warn(
@@ -838,6 +840,9 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         invokeExceptionCaught(cause);
     }
 
+    /**
+     * 判断堆栈的方法中是否包含exceptionCaught({@link ChannelHandler#exceptionCaught(ChannelHandlerContext, Throwable)})
+     */
     private static boolean inExceptionCaught(Throwable cause) {
         do {
             StackTraceElement[] trace = cause.getStackTrace();
@@ -917,6 +922,9 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return false;
     }
 
+    /**
+     * next 向后寻找
+     */
     private AbstractChannelHandlerContext findContextInbound(int mask) {
         AbstractChannelHandlerContext ctx = this;
         EventExecutor currentExecutor = executor();
@@ -926,6 +934,9 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return ctx;
     }
 
+    /**
+     * prev 向前寻找
+     */
     private AbstractChannelHandlerContext findContextOutbound(int mask) {
         AbstractChannelHandlerContext ctx = this;
         EventExecutor currentExecutor = executor();
