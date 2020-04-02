@@ -724,13 +724,14 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 int ops = k.interestOps();
                 ops &= ~SelectionKey.OP_CONNECT;
                 k.interestOps(ops);
-
+                // 完成连接
                 unsafe.finishConnect();
             }
 
             // Process OP_WRITE first as we may be able to write some queued buffers and so free memory.
             if ((readyOps & SelectionKey.OP_WRITE) != 0) { // 相当于调用k.isWritable()方法，可以查看jdk方法源码
                 // Call forceFlush which will also take care of clear the OP_WRITE once there is nothing left to write
+                // 向channel 写入数据
                 ch.unsafe().forceFlush();
             }
 
