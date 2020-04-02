@@ -260,6 +260,9 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         scheduledTaskQueue().add(task.setId(++nextTaskId));
     }
 
+    /**
+     * 提交定时任务，execute(task) 可以参考 {@link ScheduledFutureTask#run}
+     */
     private <V> ScheduledFuture<V> schedule(final ScheduledFutureTask<V> task) {
         if (inEventLoop()) {
             scheduleFromEventLoop(task);
