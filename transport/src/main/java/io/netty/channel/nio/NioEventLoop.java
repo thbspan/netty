@@ -405,6 +405,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         for (SelectionKey key: oldSelector.keys()) {
             Object a = key.attachment();
             try {
+                // 校验key有效 并且 Java NIO Channel 并未注册在新的 Selector 对象上
                 if (!key.isValid() || key.channel().keyFor(newSelectorTuple.unwrappedSelector) != null) {
                     continue;
                 }
@@ -733,9 +734,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 ch.unsafe().forceFlush();
             }
 
+            // SelectionKey.OP_READ 或 SelectionKey.OP_ACCEPT 就绪
+            // readyOps == 0 是对 JDK Bug 的处理，防止空的死循环
             // Also check for readOps of 0 to workaround possible JDK bug which may otherwise lead
             // to a spin loop
-            // 还要检查readOps为0以解决可能的JDK错误，否则可能会导致旋转循环
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
                 unsafe.read();
             }
