@@ -53,6 +53,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     private final SelectableChannel ch;
     protected final int readInterestOp;
     volatile SelectionKey selectionKey;
+    /**
+     * pending(待定，悬而未决的)
+     */
     boolean readPending;
     private final Runnable clearReadPendingRunnable = new Runnable() {
         @Override

@@ -122,6 +122,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             }
             allocHandle.readComplete();
             pipeline.fireChannelReadComplete();
+            // 触发 exceptionCaught 事件传播到 pipeline 中
             pipeline.fireExceptionCaught(cause);
             if (close || cause instanceof IOException) {
                 closeOnRead(pipeline);
@@ -161,6 +162,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                     allocHandle.incMessagesRead(1);
                     readPending = false;
                     pipeline.fireChannelRead(byteBuf);
+                    // 置空 ByteBuf 对象，这里为什么不释放：
+                    //     1、用户处理了消息手动释放；
+                    //     2、事件流到tail节点，尾节点会执行释放操作
                     byteBuf = null;
                 } while (allocHandle.continueReading());
 
