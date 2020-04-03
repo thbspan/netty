@@ -53,12 +53,14 @@ import static java.lang.Math.min;
  */
 public final class ChannelOutboundBuffer {
     // Assuming a 64-bit JVM:
-    //  - 16 bytes object header
-    //  - 6 reference fields
-    //  - 2 long fields
-    //  - 2 int fields
-    //  - 1 boolean field
-    //  - padding
+    //  - 16 bytes object header 对象头 16个字节
+    //  - 6 reference fields 6个对象的引用字段 6*8=48字节
+    //  - 2 long fields 2 个 long 字段，2 * 8 = 16 字节
+    //  - 2 int fields 1 个 int 字段，2 * 4 = 8 字节
+    //  - 1 boolean field 1 个 boolean 字段，1 字节
+    //  - padding 补齐 8 字节的整数倍，因此 7 字节
+    // 合计 96 字节( 64 位的 JVM 虚拟机，并且不考虑压缩 )
+    // Entry对象自生的大小
     static final int CHANNEL_OUTBOUND_BUFFER_ENTRY_OVERHEAD =
             SystemPropertyUtil.getInt("io.netty.transport.outboundBufferEntrySizeOverhead", 96);
 
@@ -82,9 +84,16 @@ public final class ChannelOutboundBuffer {
     // The Entry which represents the tail of the buffer
     private Entry tailEntry;
     // The number of flushed entries that are not written yet
+    // 已经flush但未写入到对端的Entry数量
     private int flushed;
 
+    /**
+     * {@link #NIO_BUFFERS}数组大小
+     */
     private int nioBufferCount;
+    /**
+     * {@link #NIO_BUFFERS}字节数
+     */
     private long nioBufferSize;
 
     private boolean inFail;
@@ -92,15 +101,24 @@ public final class ChannelOutboundBuffer {
     private static final AtomicLongFieldUpdater<ChannelOutboundBuffer> TOTAL_PENDING_SIZE_UPDATER =
             AtomicLongFieldUpdater.newUpdater(ChannelOutboundBuffer.class, "totalPendingSize");
 
+    /**
+     * 总共等待 flush 到对端的内存大小，通过 {@link Entry#pendingSize} 来合计
+     */
     @SuppressWarnings("UnusedDeclaration")
     private volatile long totalPendingSize;
 
     private static final AtomicIntegerFieldUpdater<ChannelOutboundBuffer> UNWRITABLE_UPDATER =
             AtomicIntegerFieldUpdater.newUpdater(ChannelOutboundBuffer.class, "unwritable");
 
+    /**
+     * 是否不可写
+     */
     @SuppressWarnings("UnusedDeclaration")
     private volatile int unwritable;
 
+    /**
+     * 触发 Channel 可写的改变的任务
+     */
     private volatile Runnable fireChannelWritabilityChangedTask;
 
     ChannelOutboundBuffer(AbstractChannel channel) {
@@ -114,13 +132,16 @@ public final class ChannelOutboundBuffer {
     public void addMessage(Object msg, int size, ChannelPromise promise) {
         Entry entry = Entry.newInstance(msg, size, total(msg), promise);
         if (tailEntry == null) {
+            // tailEntry 为空，将 flushedEntry 也设置为空。防御型编程，实际不会出现
             flushedEntry = null;
         } else {
             Entry tail = tailEntry;
             tail.next = entry;
         }
+        // 更新 tailEntry
         tailEntry = entry;
         if (unflushedEntry == null) {
+            //  unflushedEntry 为空，更新为新 Entry
             unflushedEntry = entry;
         }
 
@@ -167,6 +188,9 @@ public final class ChannelOutboundBuffer {
         incrementPendingOutboundBytes(size, true);
     }
 
+    /**
+     * 增加 {@link #totalPendingSize}
+     */
     private void incrementPendingOutboundBytes(long size, boolean invokeLater) {
         if (size == 0) {
             return;
@@ -186,6 +210,9 @@ public final class ChannelOutboundBuffer {
         decrementPendingOutboundBytes(size, true, true);
     }
 
+    /**
+     * 减少 {@link #totalPendingSize}
+     */
     private void decrementPendingOutboundBytes(long size, boolean invokeLater, boolean notifyWritability) {
         if (size == 0) {
             return;
@@ -813,8 +840,16 @@ public final class ChannelOutboundBuffer {
         ChannelPromise promise;
         long progress;
         long total;
+        /**
+         * 每个 Entry 预计占用的内存大小
+         *
+         * 计算方式为消息( msg )的字节数 + Entry 对象自身占用内存的大小
+         */
         int pendingSize;
         int count = -1;
+        /**
+         * 是否取消写入对端
+         */
         boolean cancelled;
 
         private Entry(Handle<Entry> handle) {
