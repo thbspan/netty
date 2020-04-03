@@ -237,9 +237,11 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
             final ChannelConfig config = ctx.channel().config();
             if (config.isAutoRead()) {
+                // 关闭接受新的客户端连接
                 // stop accept new connections for 1 second to allow the channel to recover
                 // See https://github.com/netty/netty/issues/1328
                 config.setAutoRead(false);
+                // 发起 1 秒的延迟任务，恢复重启开启接受新的客户端连接
                 ctx.channel().eventLoop().schedule(enableAutoReadTask, 1, TimeUnit.SECONDS);
             }
             // still let the exceptionCaught event flow through the pipeline to give the user

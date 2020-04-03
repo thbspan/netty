@@ -188,7 +188,12 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
     }
 
     /**
-     * Read messages into the given array and return the amount which was read.
+     * <p>
+     *     读取客户端连接到方法参数{@code buf}中
+     * </p>
+     * <p>
+     *     Read messages into the given array and return the amount which was read.
+     * </p>
      */
     protected abstract int doReadMessages(List<Object> buf) throws Exception;
 

@@ -54,7 +54,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     protected final int readInterestOp;
     volatile SelectionKey selectionKey;
     /**
-     * pending(待定，悬而未决的)
+     * pending(待定，悬而未决的)，是否要读取
      */
     boolean readPending;
     private final Runnable clearReadPendingRunnable = new Runnable() {
@@ -181,6 +181,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     private void setReadPending0(boolean readPending) {
         this.readPending = readPending;
         if (!readPending) {
+            // 移除对“读”事件的感兴趣
             ((AbstractNioUnsafe) unsafe()).removeReadOp();
         }
     }
