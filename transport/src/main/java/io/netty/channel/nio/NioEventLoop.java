@@ -732,6 +732,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             if ((readyOps & SelectionKey.OP_WRITE) != 0) { // 相当于调用k.isWritable()方法，可以查看jdk方法源码
                 // Call forceFlush which will also take care of clear the OP_WRITE once there is nothing left to write
                 // 向channel 写入数据
+                // channel 默认情况下都是可写的，所以不用注册可写事件；当写入失败时，再去注册 SelectionKey.OP_WRITE 事件，
+                // 然后轮询到channel可写时，再调用 forceFlush方法
                 ch.unsafe().forceFlush();
             }
 

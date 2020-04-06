@@ -456,6 +456,7 @@ public final class ChannelOutboundBuffer {
                         break;
                     }
                     nioBufferSize += readableBytes;
+                    // 初始化 Entry 节点的 NIO ByteBuffer 数量
                     int count = entry.count;
                     if (count == -1) {
                         //noinspection ConstantValueVariableUse
@@ -463,6 +464,7 @@ public final class ChannelOutboundBuffer {
                     }
                     int neededSpace = min(maxCount, nioBufferCount + count);
                     if (neededSpace > nioBuffers.length) {
+                        // 超过了 NIO ByteBuffer 数组的大小，进行扩容
                         nioBuffers = expandNioBufferArray(nioBuffers, neededSpace, nioBufferCount);
                         NIO_BUFFERS.set(threadLocalMap, nioBuffers);
                     }
@@ -831,11 +833,25 @@ public final class ChannelOutboundBuffer {
                 return new Entry(handle);
             }
         });
-
+        /**
+         * Recycle 处理器
+         */
         private final Handle<Entry> handle;
+        /**
+         * 下一条 Entity
+         */
         Entry next;
+        /**
+         * 消息（数据）
+         */
         Object msg;
+        /**
+         * {@link #msg} 转化的 NIO ByteBuffer 数组
+         */
         ByteBuffer[] bufs;
+        /**
+         * {@link #msg} 转化的 NIO ByteBuffer 对象
+         */
         ByteBuffer buf;
         ChannelPromise promise;
         long progress;
@@ -846,6 +862,12 @@ public final class ChannelOutboundBuffer {
          * 计算方式为消息( msg )的字节数 + Entry 对象自身占用内存的大小
          */
         int pendingSize;
+        /**
+         * {@link #msg} 转化的 NIO ByteBuffer 的数量
+         *
+         * 当 = 1 时，使用 {@link #buf}
+         * 当 > 1 时，使用 {@link #bufs}
+         */
         int count = -1;
         /**
          * 是否取消写入对端

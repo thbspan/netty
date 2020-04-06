@@ -390,6 +390,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                 return;
             }
 
+            // 获得每次写入的最大字节数
             // Ensure the pending writes are made of ByteBufs only.
             int maxBytesPerGatheringWrite = ((NioSocketChannelConfig) config).getMaxBytesPerGatheringWrite();
             ByteBuffer[] nioBuffers = in.nioBuffers(1024, maxBytesPerGatheringWrite);
