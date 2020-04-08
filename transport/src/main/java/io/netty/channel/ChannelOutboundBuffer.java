@@ -112,6 +112,13 @@ public final class ChannelOutboundBuffer {
 
     /**
      * 是否不可写
+     *
+     * <ul>
+     *     <li>0：可写</li>
+     *     <li>>0：不可写</li>
+     * </ul>
+     *
+     * @see #isWritable()
      */
     @SuppressWarnings("UnusedDeclaration")
     private volatile int unwritable;
@@ -198,6 +205,7 @@ public final class ChannelOutboundBuffer {
 
         long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, size);
         if (newWriteBufferSize > channel.config().getWriteBufferHighWaterMark()) {
+            // totalPendingSize 大于高水位阀值（默认64KB）时，设置为不可写
             setUnwritable(invokeLater);
         }
     }
@@ -220,6 +228,7 @@ public final class ChannelOutboundBuffer {
 
         long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, -size);
         if (notifyWritability && newWriteBufferSize < channel.config().getWriteBufferLowWaterMark()) {
+            // totalPendingSize 小于低水位阀值时，设置为可写
             setWritable(invokeLater);
         }
     }
@@ -372,13 +381,16 @@ public final class ChannelOutboundBuffer {
             final int readableBytes = buf.writerIndex() - readerIndex;
 
             if (readableBytes <= writtenBytes) {
+                // 当前消息( 数据 )已被写完到对端
                 if (writtenBytes != 0) {
                     progress(readableBytes);
                     writtenBytes -= readableBytes;
                 }
                 remove();
             } else { // readableBytes > writtenBytes
+                // 当前消息( 数据 )未被写完到对端
                 if (writtenBytes != 0) {
+                    // 设置当前消息的 ByteBuf 的读取位置
                     buf.readerIndex(readerIndex + (int) writtenBytes);
                     progress(writtenBytes);
                 }
@@ -390,6 +402,10 @@ public final class ChannelOutboundBuffer {
 
     // Clear all ByteBuffer from the array so these can be GC'ed.
     // See https://github.com/netty/netty/issues/3837
+
+    /**
+     * 清除 NIO ByteBuff 数组的缓存
+     */
     private void clearNioBuffers() {
         int count = nioBufferCount;
         if (count > 0) {
@@ -563,6 +579,10 @@ public final class ChannelOutboundBuffer {
     /**
      * Returns {@code true} if and only if the user-defined writability flag at the specified index is set to
      * {@code true}.
+     *
+     * <p>
+     *     获得指定位是否可写
+     * </p>
      */
     public boolean getUserDefinedWritability(int index) {
         return (unwritable & writabilityMask(index)) == 0;
@@ -617,6 +637,7 @@ public final class ChannelOutboundBuffer {
     private void setWritable(boolean invokeLater) {
         for (;;) {
             final int oldValue = unwritable;
+            // 非 和 并 运算，修改第0位bit为0
             final int newValue = oldValue & ~1;
             if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
                 if (oldValue != 0 && newValue == 0) {
