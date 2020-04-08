@@ -452,12 +452,22 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         @Override
         protected Executor prepareToClose() {
             try {
+                // Socket 参数，关闭 Socket 的延迟时间，Netty 默认值为 -1 ，表示禁用该功能。
+                // -1 表示 socket.close() 方法立即返回，但 OS 底层会将发送缓冲区全部发送到对端
+                // 0 表示 socket.close() 方法立即返回，OS 放弃发送缓冲区的数据直接向对端发送RST包，对端收到复位错误。
+                // 非 0 整数值表示调用 socket.close() 方法的线程被阻塞直到延迟时间到或发送缓冲区中的数据发送完毕，若超时，则对端会收到复位错误
                 if (javaChannel().isOpen() && config().getSoLinger() > 0) {
                     // We need to cancel this key of the channel so we may not end up in a eventloop spin
                     // because we try to read or write until the actual close happens which may be later due
                     // SO_LINGER handling.
                     // See https://github.com/netty/netty/issues/4449
+                    // 因为 SO_LINGER 大于 0 时，真正关闭 Channel ，需要阻塞直到延迟时间到或发送缓冲区中的数据发送完毕。
+                    // 如果不取消该 Channel 的 SelectionKey.OP_READ 事件的感兴趣，就会不断触发读事件，导致 CPU 空轮询。
+                    // 为什么呢?在 Channel 关闭时，会自动触发 SelectionKey.OP_READ 事件。而且，会不断不断不断的触发，
+                    // 如果不进行取消 SelectionKey.OP_READ 事件的感兴趣
                     doDeregister();
+                    // 如果在 EventLoop 中执行真正关闭 Channel 的操作，那么势必会阻塞 EventLoop 的线程。所以返回一个执行器，
+                    // 作为关闭channel的真正执行器
                     return GlobalEventExecutor.INSTANCE;
                 }
             } catch (Throwable ignore) {
@@ -465,6 +475,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                 // getSoLinger() may produce an exception. In this case we just return null.
                 // See https://github.com/netty/netty/issues/4449
             }
+            // 如果关闭了SO_LINGER功能，默认返回null
             return null;
         }
     }

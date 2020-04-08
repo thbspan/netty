@@ -612,6 +612,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     void cancel(SelectionKey key) {
+        // 对通道的读写等等 IO 就绪事件不再感兴趣，也不会做出相应的处理
         key.cancel();
         cancelledKeys ++;
         if (cancelledKeys >= CLEANUP_INTERVAL) {
