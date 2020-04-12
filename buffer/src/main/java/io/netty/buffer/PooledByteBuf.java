@@ -26,6 +26,9 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 
+/**
+ * 对象池化的 {@link ByteBuf}抽象基类
+ */
 abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
 
     private final Handle<PooledByteBuf<T>> recyclerHandle;
@@ -73,10 +76,13 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
 
     /**
      * Method must be called before reuse this {@link PooledByteBufAllocator}
+     * <br />
+     * 每次在重用{@link PooledByteBufAllocator}对象时，需要先调用该方法，重置属性
      */
     final void reuse(int maxCapacity) {
         maxCapacity(maxCapacity);
         resetRefCnt();
+        // 重置读写索引为0
         setIndex0(0, 0);
         discardMarks();
     }
@@ -98,7 +104,7 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
             return this;
         }
         checkNewCapacity(newCapacity);
-        if (!chunk.unpooled) {
+        if (!chunk.unpooled) { // 池化
             // If the request capacity does not require reallocation, just update the length of the memory.
             if (newCapacity > length) {
                 if (newCapacity <= maxLength) {
@@ -124,6 +130,9 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
         return allocator;
     }
 
+    /**
+     * 字节顺序统一为 大端 模式
+     */
     @Override
     public final ByteOrder order() {
         return ByteOrder.BIG_ENDIAN;
@@ -150,6 +159,9 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
         return PooledSlicedByteBuf.newInstance(this, this, index, length);
     }
 
+    /**
+     * 获得临时 {@link ByteBuf}对象({@link #tmpNioBuf})
+     */
     protected final ByteBuffer internalNioBuffer() {
         ByteBuffer tmpNioBuf = this.tmpNioBuf;
         if (tmpNioBuf == null) {

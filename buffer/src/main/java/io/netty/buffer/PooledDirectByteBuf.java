@@ -45,6 +45,11 @@ final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
         super(recyclerHandle, maxCapacity);
     }
 
+    /**
+     * 获得临时 ByteBuf 对象( tmpNioBuf )
+     * <br/>
+     * 调用 ByteBuffer#duplicate() 方法，复制一个 ByteBuffer 对象，共享里面的数据
+     */
     @Override
     protected ByteBuffer newInternalNioBuffer(ByteBuffer memory) {
         return memory.duplicate();

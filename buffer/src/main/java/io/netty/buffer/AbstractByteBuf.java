@@ -245,8 +245,11 @@ public abstract class AbstractByteBuf extends ByteBuf {
             }
 
             if (readerIndex >= capacity() >>> 1) {
+                // 读索引超过了容量的一半，进行释放（也即是说，在空间和时间之间，做了一个平衡）
+                // 移动可读段
                 setBytes(0, this, readerIndex, writerIndex - readerIndex);
                 writerIndex -= readerIndex;
+                // 调整标记位(防止调整后，索引越界)
                 adjustMarkers(readerIndex);
                 readerIndex = 0;
                 return this;

@@ -875,7 +875,13 @@ public final class ChannelOutboundBuffer {
          */
         ByteBuffer buf;
         ChannelPromise promise;
+        /**
+         * 已经写入的字节数
+         */
         long progress;
+        /**
+         * 长度，可读字节数
+         */
         long total;
         /**
          * 每个 Entry 预计占用的内存大小
