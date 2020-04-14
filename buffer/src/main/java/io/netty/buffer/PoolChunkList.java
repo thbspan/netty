@@ -29,11 +29,17 @@ import java.nio.ByteBuffer;
 
 final class PoolChunkList<T> implements PoolChunkListMetric {
     private static final Iterator<PoolChunkMetric> EMPTY_METRICS = Collections.<PoolChunkMetric>emptyList().iterator();
+    /**
+     * 所属的Arena
+     */
     private final PoolArena<T> arena;
     private final PoolChunkList<T> nextList;
     private final int minUsage;
     private final int maxUsage;
     private final int maxCapacity;
+    /**
+     * head节点
+     */
     private PoolChunk<T> head;
 
     // This is only update once when create the linked like list of PoolChunkList in PoolArena constructor.
@@ -48,6 +54,7 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
         this.nextList = nextList;
         this.minUsage = minUsage;
         this.maxUsage = maxUsage;
+        // 计算在该状态下，一个chunk块可以分配的最大内存
         maxCapacity = calculateMaxCapacity(minUsage, chunkSize);
     }
 
@@ -68,6 +75,7 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
         // As an example:
         // - If a PoolChunkList has minUsage == 25 we are allowed to allocate at most 75% of the chunkSize because
         //   this is the maximum amount available in any PoolChunk in this PoolChunkList.
+        //   Q25中一个Chunk可以分配的最大内存为0.75 * ChunkSize
         return  (int) (chunkSize * (100L - minUsage) / 100L);
     }
 
@@ -105,15 +113,22 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
         return true;
     }
 
+    /**
+     * 移动{@code chunk}
+     * <br/>
+     * 随着内存使用率的增加，需要调用add()方法将PoolChunk向右移动到正确状态的PoolChunkList；
+     * 同理，随着内存使用率的减小，也需要一个方法将PoolChunk向左移动到正确状态。
+     */
     private boolean move(PoolChunk<T> chunk) {
         assert chunk.usage() < maxUsage;
 
         if (chunk.usage() < minUsage) {
             // Move the PoolChunk down the PoolChunkList linked-list.
-            return move0(chunk);
+            return move0(chunk);// 向左移动到正确的状态，递归调用
         }
 
         // PoolChunk fits into this PoolChunkList, adding it here.
+        // 达到正确的状态后，加入双向链表
         add0(chunk);
         return true;
     }
@@ -126,9 +141,11 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
         if (prevList == null) {
             // There is no previous PoolChunkList so return false which result in having the PoolChunk destroyed and
             // all memory associated with the PoolChunk will be released.
+            // 此时表示chunk为Q0状态，且还需要移动，说明Chunk使用率为0
             assert chunk.usage() == 0;
             return false;
         }
+        // 向左移动
         return prevList.move(chunk);
     }
 
