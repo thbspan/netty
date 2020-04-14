@@ -19,19 +19,49 @@ package io.netty.buffer;
 final class PoolSubpage<T> implements PoolSubpageMetric {
 
     final PoolChunk<T> chunk;
+    /**
+     * 所属Page的标号
+     */
     private final int memoryMapIdx;
+    /**
+     * 整个chunk偏移的字节数
+     */
     private final int runOffset;
+    /**
+     * 页大小
+     */
     private final int pageSize;
+    /**
+     * 均等小块的分配信息
+     */
     private final long[] bitmap;
 
     PoolSubpage<T> prev;
     PoolSubpage<T> next;
 
+    /**
+     * 是否需要释放整个Page
+     */
     boolean doNotDestroy;
+    /**
+     * 均等切分的大小
+     */
     int elemSize;
+    /**
+     * 最多可以切分的小块数
+     */
     private int maxNumElems;
+    /**
+     * 位图信息长度，long的个数
+     */
     private int bitmapLength;
+    /**
+     * 下一个可分配的小块位置信息
+     */
     private int nextAvail;
+    /**
+     * 可用的小块数
+     */
     private int numAvail;
 
     // TODO: Test if adding padding helps under contention
@@ -64,7 +94,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
             nextAvail = 0;
             bitmapLength = maxNumElems >>> 6;
             if ((maxNumElems & 63) != 0) {
-                bitmapLength ++;
+                bitmapLength ++;// subpage不是64倍，多需要一个long
             }
 
             for (int i = 0; i < bitmapLength; i ++) {
