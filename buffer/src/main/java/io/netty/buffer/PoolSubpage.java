@@ -82,6 +82,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         this.memoryMapIdx = memoryMapIdx;
         this.runOffset = runOffset;
         this.pageSize = pageSize;
+        // 此处使用最大值，最小分配16B所需的long个数
         bitmap = new long[pageSize >>> 10]; // pageSize / 16 / 64
         init(head, elemSize);
     }
@@ -117,8 +118,8 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         }
 
         final int bitmapIdx = getNextAvail();
-        int q = bitmapIdx >>> 6;
-        int r = bitmapIdx & 63;
+        int q = bitmapIdx >>> 6;// 高24位表示long数组索引
+        int r = bitmapIdx & 63;// 低6位表示在long中实际分配的二进制位 63 == 0011 1111
         assert (bitmap[q] >>> r & 1) == 0;
         bitmap[q] |= 1L << r;
 
@@ -199,7 +200,8 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         final int bitmapLength = this.bitmapLength;
         for (int i = 0; i < bitmapLength; i ++) {
             long bits = bitmap[i];
-            if (~bits != 0) {
+            if (~bits != 0) { // ~(-1) == 0
+                // 还有可用的均等小块
                 return findNextAvail0(i, bits);
             }
         }
@@ -210,6 +212,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         final int maxNumElems = this.maxNumElems;
         final int baseVal = i << 6;
 
+        // 从最低位开始表示分配信息，最低位表示第1块分配
         for (int j = 0; j < 64; j ++) {
             if ((bits & 1) == 0) {
                 int val = baseVal | j;
@@ -225,6 +228,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
     }
 
     private long toHandle(int bitmapIdx) {
+        // 0100 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000‬
         return 0x4000000000000000L | (long) bitmapIdx << 32 | memoryMapIdx;
     }
 
