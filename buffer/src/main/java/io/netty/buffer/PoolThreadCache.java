@@ -54,12 +54,22 @@ final class PoolThreadCache {
     private final MemoryRegionCache<byte[]>[] normalHeapCaches;
     private final MemoryRegionCache<ByteBuffer>[] normalDirectCaches;
 
-    // Used for bitshifting when calculate the index of normal caches later
+    /**
+     * Used for bitshifting when calculate the index of normal caches later
+     * <br/>
+     * 用于计算normal请求的数组索引 = log2(pageSize)
+     */
     private final int numShiftsNormalDirect;
     private final int numShiftsNormalHeap;
+    /**
+     * 分配次数达到该阈值则检测释放
+     */
     private final int freeSweepAllocationThreshold;
     private final AtomicBoolean freed = new AtomicBoolean();
 
+    /**
+     * 分配次数
+     */
     private int allocations;
 
     // TODO: Test if adding padding helps under contention
@@ -190,6 +200,7 @@ final class PoolThreadCache {
         boolean allocated = cache.allocate(buf, reqCapacity);
         if (++ allocations >= freeSweepAllocationThreshold) {
             allocations = 0;
+            // 整理
             trim();
         }
         return allocated;
@@ -306,6 +317,7 @@ final class PoolThreadCache {
     }
 
     private MemoryRegionCache<?> cacheForTiny(PoolArena<?> area, int normCapacity) {
+        // normCapacity >>> 4, 即16B的索引为1
         int idx = PoolArena.tinyIdx(normCapacity);
         if (area.isDirect()) {
             return cache(tinySubPageDirectCaches, idx);
@@ -368,9 +380,19 @@ final class PoolThreadCache {
     }
 
     private abstract static class MemoryRegionCache<T> {
+        /**
+         * 队列的长度
+         */
         private final int size;
+        /**
+         * 队列
+         */
         private final Queue<Entry<T>> queue;
+        // Tiny/Small/Normal
         private final SizeClass sizeClass;
+        /**
+         * 分配次数
+         */
         private int allocations;
 
         MemoryRegionCache(int size, SizeClass sizeClass) {
@@ -467,6 +489,9 @@ final class PoolThreadCache {
 
         static final class Entry<T> {
             final Handle<Entry<?>> recyclerHandle;
+            /**
+             * ByteBuf之前分配所属的chunk
+             */
             PoolChunk<T> chunk;
             ByteBuffer nioBuffer;
             long handle = -1;

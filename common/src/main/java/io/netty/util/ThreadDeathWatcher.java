@@ -154,6 +154,7 @@ public final class ThreadDeathWatcher {
                 notifyWatchees();
 
                 // Try once again just in case notifyWatchees() triggered watch() or unwatch().
+                // 再次执行，防止notifyWatchees()触发新的观察线程
                 fetchWatchees();
                 notifyWatchees();
 
