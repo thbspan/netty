@@ -112,7 +112,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
      */
     final PoolArena<T> arena;
     /**
-     * 内存空间
+     * 内存空间，用于{@link PooledByteBuf#memory} 属性，有 Direct ByteBuffer 和 {@code byte[]} 字节数组
      */
     final T memory;
     /**
@@ -134,8 +134,16 @@ final class PoolChunk<T> implements PoolChunkMetric {
     final int offset;
     /**
      * 分配信息满二叉树
-     *
+     * <br/>
      * index 为节点编号
+     * <br/>
+     *
+     * memoryMap 数组的值，总结为 3 种情况
+     * <ul>
+     *     <li>1：memoryMap[id] == depthMap[id]，该节点没有被分配</li>
+     *     <li>2：最大高度 >= memoryMap[id] > depthMap[id]，至少有一个子节点被分配，不能再分配该高度满足的内存，但可以根据实际分配较小一些的内存</li>
+     *     <li>3：memoryMap[id] == 最大高度 + 1，该节点及其子节点已被完全分配，没有剩余空间</li>
+     * </ul>
      */
     private final byte[] memoryMap;
     /**
@@ -145,7 +153,9 @@ final class PoolChunk<T> implements PoolChunkMetric {
      */
     private final byte[] depthMap;
     /**
-     * PoolSubpage 数组
+     * PoolSubpage 数组。每个节点对应一个 PoolSubpage 对象。
+     * <br/>
+     * 因为实际上，每个 Page 还是比较大的内存块，可以进一步切分成小块 SubPage
      */
     private final PoolSubpage<T>[] subpages;
     /**
@@ -153,11 +163,16 @@ final class PoolChunk<T> implements PoolChunkMetric {
      *
      * 默认-8192
      *
+     * <br/>
+     * 对于小于 8K 字节的申请，求 subpageOverflowMask & length 都等于 0
+     * <br/>
+     * 对于>= 8K 字节的申请，求 subpageOverflowMask & length 都不等于 0
+     * <br/>
      * Used to determine if the requested capacity is equal to or greater than pageSize.
      */
     private final int subpageOverflowMask;
     /**
-     * Page 大小，默认 8KB = 8192B
+     * 每个Page的大小，默认 8KB = 8192B
      */
     private final int pageSize;
     /**
@@ -167,25 +182,33 @@ final class PoolChunk<T> implements PoolChunkMetric {
      */
     private final int pageShifts;
     /**
-     * 满二叉树的高度，默认为 11
+     * 满二叉树的高度 - 1，默认为 11：<b>(层高从0开始)</b>
+     * <br/>
+     * 8K,16K,32K,64K,128K,256K,512K,1024K,2048K,4096K,8192K,16384K(16M) 有12个
      */
     private final int maxOrder;
     /**
-     * Chunk 内存卡占用大小。默认为 16M = 16 * 1024
+     * Chunk 内存块占用大小。默认为 16M = 16 * 1024
      */
     private final int chunkSize;
     /**
      * log2 {@link #chunkSize} 的结果。默认为 log2( 16M ) = 24
+     *
+     * @see #log2(int)
      */
     private final int log2ChunkSize;
     /**
-     * 可分配 {@link #subpages} 的数量，即数组大小。默认为 1 << maxOrder = 1 << 11 = 2048
+     * 可分配的Page({@link #subpages})的数量，即数组大小。默认为 1 << maxOrder = 1 << 11 = 2048
+     * <br/>
+     * 从page0,page1,...,page(2^11-1=2047),这2048个节点
      */
     private final int maxSubpageAllocs;
     /**
-     * 标记节点不可用。默认为 {@link #maxOrder} + 1 = 12
-     *
      * Used to mark memory as unusable
+     * <br/>
+     * 标记节点不可用。默认为 {@link #maxOrder} + 1 = 12
+     * <br/>
+     * 当一个节点被分配后，该节点的值设为 {@code unusable}
      */
     private final byte unusable;
 
@@ -232,11 +255,14 @@ final class PoolChunk<T> implements PoolChunkMetric {
         freeBytes = chunkSize;
 
         assert maxOrder < 30 : "maxOrder should be < 30, but is: " + maxOrder;
+        // 可分配 subpages 的数量 2048
         maxSubpageAllocs = 1 << maxOrder;
 
         // Generate the memory map.
         memoryMap = new byte[maxSubpageAllocs << 1];
         depthMap = new byte[memoryMap.length];
+        // 从1开始，因为1 + 2 + 4 + ...2^n = 2^(n+1) - 1，多一个；这样也更好计算父子关系：子节点加倍，父节点减半
+        // 例如512 的子节点为 1024( 512 * 2 )和 1025( 512 * 2 + 1 )( 1025 / 2 = 512 )
         int memoryMapIndex = 1;
         for (int d = 0; d <= maxOrder; ++ d) { // move down the tree one level at a time
             int depth = 1 << d;
