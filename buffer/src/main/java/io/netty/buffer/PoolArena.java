@@ -60,7 +60,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
      */
     final int chunkSize;
     /**
-     * 用于判断请求是否为small/tiny = -pageSize
+     * 用于判断请求是否为{@link SizeClass#Tiny}/{@link SizeClass#Small}，值等于{@code -pageSize}
      */
     final int subpageOverflowMask;
     final int numSmallSubpagePools;
@@ -370,15 +370,17 @@ abstract class PoolArena<T> implements PoolArenaMetric {
     int normalizeCapacity(int reqCapacity) {
         checkPositiveOrZero(reqCapacity, "reqCapacity");
 
-        if (reqCapacity >= chunkSize) {// >= 16
+        if (reqCapacity >= chunkSize) {// >= 16M
             // Huge内存，直接返回（直接内存需要对齐）
             return directMemoryCacheAlignment == 0 ? reqCapacity : alignCapacity(reqCapacity);
         }
 
         if (!isTiny(reqCapacity)) { // >= 512
-            // Doubled
+            // Small 和 Normal 规范化到>=2^n的最小值
 
             int normalizedCapacity = reqCapacity;
+            // 把最高为的1移动到所有位置上，移动位数每次都加倍，
+            // 因为之前已经处理了这么多位的数据，下一次移动可以利用上一次处理的结果
             normalizedCapacity --;
             normalizedCapacity |= normalizedCapacity >>>  1;
             normalizedCapacity |= normalizedCapacity >>>  2;
@@ -400,7 +402,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
             return alignCapacity(reqCapacity);
         }
 
-        // Quantum-spaced Tiny且已经是16B的倍数
+        // Quantum-spaced，Tiny且已经是16B的倍数（Tiny内存分配时，每次增加16B，其他的是翻倍）
         if ((reqCapacity & 15) == 0) {
             return reqCapacity;
         }
@@ -409,7 +411,18 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         return (reqCapacity & ~15) + 16;
     }
 
+    /**
+     * 返回基准的整数倍，比如基准为64B，则分配的内存都需要为64B的整数倍，
+     * 也就是常说的按64字节对齐
+     *
+     * 代码实现的理解可以参考方法{@link #normalizeCapacity(int)} 的最后，对TINY内存的规范化
+     * <pre>
+     *     // Tiny不是16B的倍数则规范化到16B的倍数
+     *     return (reqCapacity & ~15) + 16;
+     * </pre>
+     */
     int alignCapacity(int reqCapacity) {
+        // directMemoryCacheAlignmentMask = cacheAlignment - 1
         int delta = reqCapacity & directMemoryCacheAlignmentMask;
         return delta == 0 ? reqCapacity : reqCapacity + directMemoryCacheAlignment - delta;
     }
