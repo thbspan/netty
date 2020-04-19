@@ -135,7 +135,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     /**
      * 分配信息满二叉树
      * <br/>
-     * index 为节点编号
+     * index 为节点编号，从1开始
      * <br/>
      *
      * memoryMap 数组的值，总结为 3 种情况
@@ -144,16 +144,19 @@ final class PoolChunk<T> implements PoolChunkMetric {
      *     <li>2：最大高度 >= memoryMap[id] > depthMap[id]，至少有一个子节点被分配，不能再分配该高度满足的内存，但可以根据实际分配较小一些的内存</li>
      *     <li>3：memoryMap[id] == 最大高度 + 1，该节点及其子节点已被完全分配，没有剩余空间</li>
      * </ul>
+     * 初始值：0(0) 0(1) 1(2) 1(3) 2(4) 2(5) 2(6) 2(7) 3(8) 3(9) 3(10) 3(11) 3(12) 3(13) 3(14) 3(15) ... 11(2048) ... 11(4095)
      */
     private final byte[] memoryMap;
     /**
      * 高度信息满二叉树
-     *
-     * index 为节点编号
+     * <br/>
+     * index 为节点编号，从1开始
+     * <br/>
+     * 初始值：0(0) 0(1) 1(2) 1(3) 2(4) 2(5) 2(6) 2(7) 3(8) 3(9) 3(10) 3(11) 3(12) 3(13) 3(14) 3(15) ... 11(2048) ... 11(4095)
      */
     private final byte[] depthMap;
     /**
-     * PoolSubpage 数组。每个节点对应一个 PoolSubpage 对象。
+     * PoolSubpage 数组。每个节点对应一个 PoolSubpage 对象。默认2048个
      * <br/>
      * 因为实际上，每个 Page 还是比较大的内存块，可以进一步切分成小块 SubPage
      */
@@ -188,13 +191,13 @@ final class PoolChunk<T> implements PoolChunkMetric {
      */
     private final int maxOrder;
     /**
-     * Chunk 内存块占用大小。默认为 16M = 16 * 1024
+     * Chunk 内存块占用大小。默认为 16M = 8KB * 2048
      */
     private final int chunkSize;
     /**
      * log2 {@link #chunkSize} 的结果。默认为 log2( 16M ) = 24
      *
-     * @see #log2(int)
+     * @see #log2(int) 和数学上的log<sub>2</sub>计数不同
      */
     private final int log2ChunkSize;
     /**
@@ -258,7 +261,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
         // 可分配 subpages 的数量 2048
         maxSubpageAllocs = 1 << maxOrder;
 
-        // Generate the memory map.
+        // Generate the memory map. 4096
         memoryMap = new byte[maxSubpageAllocs << 1];
         depthMap = new byte[memoryMap.length];
         // 从1开始，因为1 + 2 + 4 + ...2^n = 2^(n+1) - 1，多一个；这样也更好计算父子关系：子节点加倍，父节点减半
@@ -330,7 +333,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
         if ((normCapacity & subpageOverflowMask) != 0) { // >= pageSize
             handle =  allocateRun(normCapacity);
         } else {
-            // 小于Page大小，分配Subpage内存块
+            // 小于Page(8K)大小，分配Subpage内存块
             handle = allocateSubpage(normCapacity);
         }
 
@@ -369,8 +372,10 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * @param id id
      */
     private void updateParentsFree(int id) {
+        // 获得当前节点子节点的层级
         int logChild = depth(id) + 1;
         while (id > 1) {
+            // 获得父节点的编号
             int parentId = id >>> 1;
             byte val1 = value(id);
             byte val2 = value(id ^ 1);
@@ -398,14 +403,15 @@ final class PoolChunk<T> implements PoolChunkMetric {
         int id = 1;
         int initial = - (1 << d); // has last d bits = 0 and rest all = 1
         byte val = value(id);
-        if (val > d) { // unusable
+        if (val > d) { // unusable 不可用的
             return -1;
         }
+        // 获得第 d 层，匹配的节点。id & initial 来保证，高度小于 d 会继续循环
         while (val < d || (id & initial) == 0) { // id & initial == 1 << d for all ids at depth d, for < d it is 0
             id <<= 1;
             val = value(id);
             if (val > d) {
-                id ^= 1;
+                id ^= 1; // 获得右节点的编号 相当于 id = id + 1
                 val = value(id);
             }
         }
@@ -424,7 +430,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * @return index in memoryMap
      */
     private long allocateRun(int normCapacity) {
-        // 获得层级
+        // 获得层级，例如 normCapacity = 8192(8K)，log2(normCapacity) = 13，则 d = 11
         int d = maxOrder - (log2(normCapacity) - pageShifts);
         // 获取节点
         int id = allocateNode(d);
@@ -449,6 +455,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
         // 获得相应内存规格的Subpage双向链表的head节点
         // Obtain the head of the PoolSubPage pool that is owned by the PoolArena and synchronize on it.
         // This is need as we may add it back and so alter the linked-list structure.
+        // 例如 normCapacity = 4096(4K)，
         PoolSubpage<T> head = arena.findSubpagePoolHead(normCapacity);
         int d = maxOrder; // subpages are only be allocated from pages i.e., leaves
         // 加锁，分配过程会修改双向链表的结构，会存在多线程的情况
@@ -460,11 +467,12 @@ final class PoolChunk<T> implements PoolChunkMetric {
             }
 
             final PoolSubpage<T>[] subpages = this.subpages;
+            // 默认8K == 8 * 1024
             final int pageSize = this.pageSize;
 
             freeBytes -= pageSize;
 
-            int subpageIdx = subpageIdx(id);
+            int subpageIdx = subpageIdx(id); // 去掉最高位的1，id >= 2048
             PoolSubpage<T> subpage = subpages[subpageIdx];
             if (subpage == null) {
                 subpage = new PoolSubpage<T>(head, this, id, runOffset(id), pageSize, normCapacity);
@@ -573,6 +581,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     }
 
     private int subpageIdx(int memoryMapIdx) {
+        // 异或位运算
         return memoryMapIdx ^ maxSubpageAllocs; // remove highest set bit, to get offset
     }
 

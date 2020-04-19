@@ -39,7 +39,7 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         // 除此之外的请求为huge
     }
 
-    static final int numTinySubpagePools = 512 >>> 4;
+    static final int numTinySubpagePools = 512 >>> 4; // 32
 
     final PooledByteBufAllocator parent;
 
@@ -69,10 +69,12 @@ abstract class PoolArena<T> implements PoolArenaMetric {
      */
     final int directMemoryCacheAlignment;
     /**
-     * 用于内存对齐
+     * 用于内存对齐，值等于 {@link #directMemoryCacheAlignment} - 1
      */
     final int directMemoryCacheAlignmentMask;
+    // Subpage双向链表数组
     private final PoolSubpage<T>[] tinySubpagePools;
+    // Subpage双向链表数组
     private final PoolSubpage<T>[] smallSubpagePools;
 
     private final PoolChunkList<T> q050;
@@ -114,12 +116,13 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         this.chunkSize = chunkSize;
         directMemoryCacheAlignment = cacheAlignment;
         directMemoryCacheAlignmentMask = cacheAlignment - 1;
-        subpageOverflowMask = ~(pageSize - 1);// - pageSize
+        subpageOverflowMask = ~(pageSize - 1);// == - pageSize，写成这样便于理解它的二进制结果
+        // 32个[16, 32, 48,..., 480, 496]
         tinySubpagePools = newSubpagePoolArray(numTinySubpagePools);
         for (int i = 0; i < tinySubpagePools.length; i ++) {
             tinySubpagePools[i] = newSubpagePoolHead(pageSize);
         }
-
+        // 4个[512, 1K, 2K, 4K]
         numSmallSubpagePools = pageShifts - 9;
         smallSubpagePools = newSubpagePoolArray(numSmallSubpagePools);
         for (int i = 0; i < smallSubpagePools.length; i ++) {
@@ -379,8 +382,9 @@ abstract class PoolArena<T> implements PoolArenaMetric {
             // Small 和 Normal 规范化到>=2^n的最小值
 
             int normalizedCapacity = reqCapacity;
-            // 把最高为的1移动到所有位置上，移动位数每次都加倍，
-            // 因为之前已经处理了这么多位的数据，下一次移动可以利用上一次处理的结果
+            // 把最高为的1移动到所有位置上，
+            // 为什么移动位数每次都加倍？因为之前已经处理了这么多位的数据，下一次移动可以利用上一次处理的结果
+            // 为什么要移动5次？因为考虑极限情况，如果最高位是1，需要移动5次，如果其他为是1，移动次数就多了，但是移动次数多了也不影响
             normalizedCapacity --;
             normalizedCapacity |= normalizedCapacity >>>  1;
             normalizedCapacity |= normalizedCapacity >>>  2;
