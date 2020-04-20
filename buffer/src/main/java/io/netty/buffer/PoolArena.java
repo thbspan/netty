@@ -173,10 +173,20 @@ abstract class PoolArena<T> implements PoolArenaMetric {
         return buf;
     }
 
+    /**
+     * tiny内存是 16B的整数倍，就是每次增加16B，从16B开始，最大496B，所以索引为 normCapacity / 16
+     */
     static int tinyIdx(int normCapacity) {
         return normCapacity >>> 4;
     }
 
+    /**
+     * small内存从512B开始，每次加倍，最大为4KB
+     * <br/>
+     * 默认4个[512B, 1KB, 2KB, 4KB]
+     * <br/>
+     * 因为索引是从0开始的，所以normCapacity / 1024 (== normCapacity >>> 10)
+     */
     static int smallIdx(int normCapacity) {
         int tableIdx = 0;
         int i = normCapacity >>> 10;

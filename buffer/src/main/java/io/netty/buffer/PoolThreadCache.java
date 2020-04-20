@@ -57,7 +57,7 @@ final class PoolThreadCache {
     /**
      * Used for bitshifting when calculate the index of normal caches later
      * <br/>
-     * 用于计算normal请求的数组索引 = log2(pageSize)
+     * 用于计算normal请求的数组索引 = log2(pageSize) = 13
      */
     private final int numShiftsNormalDirect;
     private final int numShiftsNormalHeap;
@@ -87,7 +87,7 @@ final class PoolThreadCache {
                     tinyCacheSize, PoolArena.numTinySubpagePools, SizeClass.Tiny);
             smallSubPageDirectCaches = createSubPageCaches(
                     smallCacheSize, directArena.numSmallSubpagePools, SizeClass.Small);
-
+            // pageSize默认为8192，所以 numShiftsNormalDirect = 13
             numShiftsNormalDirect = log2(directArena.pageSize);
             normalDirectCaches = createNormalCaches(
                     normalCacheSize, maxCachedBufferCapacity, directArena);
@@ -147,9 +147,12 @@ final class PoolThreadCache {
     private static <T> MemoryRegionCache<T>[] createNormalCaches(
             int cacheSize, int maxCachedBufferCapacity, PoolArena<T> area) {
         if (cacheSize > 0 && maxCachedBufferCapacity > 0) {
+            // 默认 maxCachedBufferCapacity = 32K
             int max = Math.min(area.chunkSize, maxCachedBufferCapacity);
+            // 默认3
             int arraySize = Math.max(1, log2(max / area.pageSize) + 1);
 
+            // cache[0] = 8KB、cache[1] = 16KB、cache[2] = 32KB
             @SuppressWarnings("unchecked")
             MemoryRegionCache<T>[] cache = new MemoryRegionCache[arraySize];
             for (int i = 0; i < cache.length; i++) {
@@ -209,6 +212,10 @@ final class PoolThreadCache {
     /**
      * Add {@link PoolChunk} and {@code handle} to the cache if there is enough room.
      * Returns {@code true} if it fit into the cache {@code false} otherwise.
+     *
+     * <br/>
+     * 添加内存块到{@link PoolThreadCache} 的指定{@link MemoryRegionCache} 的队列中，进行缓存，
+     * 返回是否添加成功
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     boolean add(PoolArena<?> area, PoolChunk chunk, ByteBuffer nioBuffer,
@@ -317,7 +324,6 @@ final class PoolThreadCache {
     }
 
     private MemoryRegionCache<?> cacheForTiny(PoolArena<?> area, int normCapacity) {
-        // normCapacity >>> 4, 即16B的索引为1
         int idx = PoolArena.tinyIdx(normCapacity);
         if (area.isDirect()) {
             return cache(tinySubPageDirectCaches, idx);
@@ -333,6 +339,17 @@ final class PoolThreadCache {
         return cache(smallSubPageHeapCaches, idx);
     }
 
+    /**
+     * normal内存默认从8KB开始，也是每次加倍
+     * <pre>
+     *     normCapacity normCapacity >> numShiftsNormalDirect log2
+     *     8KB          1                                     0
+     *     16KB         2                                     1
+     *     32KB         4                                     2
+     *
+     *     根据上面的表格可以看出，log2的值就是数组的下表
+     * </pre>
+     */
     private MemoryRegionCache<?> cacheForNormal(PoolArena<?> area, int normCapacity) {
         if (area.isDirect()) {
             int idx = log2(normCapacity >> numShiftsNormalDirect);
@@ -379,16 +396,21 @@ final class PoolThreadCache {
         }
     }
 
+    /**
+     * 内存卡缓存
+     */
     private abstract static class MemoryRegionCache<T> {
         /**
-         * 队列的长度
+         * {@link #queue} 队列的长度
          */
         private final int size;
         /**
-         * 队列
+         * 队列，存储缓存的内存块
          */
         private final Queue<Entry<T>> queue;
-        // Tiny/Small/Normal
+        /**
+         * 内存块类型 Tiny/Small/Normal
+         */
         private final SizeClass sizeClass;
         /**
          * 分配次数
@@ -424,6 +446,8 @@ final class PoolThreadCache {
 
         /**
          * Allocate something out of the cache if possible and remove the entry from the cache.
+         * <br />
+         * 从队列中获取缓存的内存块，初始化到 {@link PooledByteBuf} 对象中，并返回是否分配成功
          */
         public final boolean allocate(PooledByteBuf<T> buf, int reqCapacity) {
             Entry<T> entry = queue.poll();
@@ -460,9 +484,12 @@ final class PoolThreadCache {
         }
 
         /**
+         * 当分配操作达到一定阈值（Netty默认8192）时，没有被分配出去的缓存空间都要被释放，以防止内存泄漏
+         *
          * Free up cached {@link PoolChunk}s if not allocated frequently enough.
          */
         public final void trim() {
+            // allocations 表示已经重新分配出去的ByteBuf个数
             int free = size - allocations;
             allocations = 0;
 
@@ -484,9 +511,16 @@ final class PoolThreadCache {
                 entry.recycle();
             }
 
+            // 释放缓存的内存块回 chunk中
             chunk.arena.freeChunk(chunk, handle, sizeClass, nioBuffer, finalizer);
         }
 
+        /**
+         * 对应一个内存块。
+         * <p>
+         * <b>通过 {@link #chunk} 和 {@link #handle}，可以唯一确定一个内存块</b>
+         * </p>
+         */
         static final class Entry<T> {
             final Handle<Entry<?>> recyclerHandle;
             /**
@@ -494,6 +528,9 @@ final class PoolThreadCache {
              */
             PoolChunk<T> chunk;
             ByteBuffer nioBuffer;
+            /**
+             * 内存块在 {@link #chunk} 中的位置
+             */
             long handle = -1;
 
             Entry(Handle<Entry<?>> recyclerHandle) {
