@@ -33,6 +33,13 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
      * 所属的Arena
      */
     private final PoolArena<T> arena;
+    /**
+     * 下一个 PoolChunkList 对象
+     * <pre>
+     * 当 Chunk 分配的内存率超过 maxUsage 时，从当前 PoolChunkList 节点移除，
+     * 添加到下一个 PoolChunkList 节点( nextList )
+     * </pre>
+     */
     private final PoolChunkList<T> nextList;
     private final int minUsage;
     private final int maxUsage;
@@ -42,6 +49,13 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
      */
     private PoolChunk<T> head;
 
+    /**
+     * 前一个 PoolChunkList 对象
+     * <pre>
+     * 当 Chunk 分配的内存率小于 minUsage 时，从当前 PoolChunkList 节点移除，
+     * 添加到上一个 PoolChunkList 节点( prevList )
+     * </pre>
+     */
     // This is only update once when create the linked like list of PoolChunkList in PoolArena constructor.
     private PoolChunkList<T> prevList;
 
