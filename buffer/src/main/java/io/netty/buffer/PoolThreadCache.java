@@ -406,7 +406,7 @@ final class PoolThreadCache {
     }
 
     /**
-     * 内存卡缓存
+     * 内存块缓存
      */
     private abstract static class MemoryRegionCache<T> {
         /**
