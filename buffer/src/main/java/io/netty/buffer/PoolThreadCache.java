@@ -55,14 +55,23 @@ final class PoolThreadCache {
     private final MemoryRegionCache<ByteBuffer>[] normalDirectCaches;
 
     /**
-     * Used for bitshifting when calculate the index of normal caches later
+     * 用于计算请求分配的 normal 类型的内存块，在 {@link #normalDirectCaches} 数组中的位置
      * <br/>
+     * 默认为 log2(pageSize) = log2(8192) = 13
      * 用于计算normal请求的数组索引 = log2(pageSize) = 13
      */
     private final int numShiftsNormalDirect;
+
+    /**
+     * 于计算请求分配的 normal 类型的内存块，在 {@link #normalHeapCaches} 数组中的位置
+     * <br/>
+     * 默认为 log2(pageSize) = log2(8192) = 13
+     */
     private final int numShiftsNormalHeap;
     /**
      * 分配次数达到该阈值则检测释放
+     * <br/>
+     * 默认8192次
      */
     private final int freeSweepAllocationThreshold;
     private final AtomicBoolean freed = new AtomicBoolean();
