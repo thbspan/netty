@@ -34,13 +34,36 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
     private final Handle<PooledByteBuf<T>> recyclerHandle;
 
     protected PoolChunk<T> chunk;
+    /**
+     * 从 {@link #chunk} 对象中分配的内存块所处的位置
+     */
     protected long handle;
+    /**
+     * 内存空间。具体什么样的数据，通过子类设置泛型
+     */
     protected T memory;
+    /**
+     * 偏移量。使用 {@link #memory} 的开始位置
+     */
     protected int offset;
+    /**
+     * 容量
+     *
+     * @see #capacity()
+     */
     protected int length;
+    /**
+     * 占用 {@link #memory} 的大小
+     */
     int maxLength;
     PoolThreadCache cache;
+    /**
+     * 临时 ByteBuff 对象
+     */
     ByteBuffer tmpNioBuf;
+    /**
+     * ByteBuf 分配器对象
+     */
     private ByteBufAllocator allocator;
 
     @SuppressWarnings("unchecked")
@@ -49,11 +72,17 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
         this.recyclerHandle = (Handle<PooledByteBuf<T>>) recyclerHandle;
     }
 
+    /**
+     * 基于 pooled 的 {@link PoolChunk} 对象，初始化 PooledByteBuf 对象
+     */
     void init(PoolChunk<T> chunk, ByteBuffer nioBuffer,
               long handle, int offset, int length, int maxLength, PoolThreadCache cache) {
         init0(chunk, nioBuffer, handle, offset, length, maxLength, cache);
     }
 
+    /**
+     * 基于 unPoolooled 的 {@link PoolChunk} 对象，初始化 PooledByteBuf 对象
+     */
     void initUnpooled(PoolChunk<T> chunk, int length) {
         init0(chunk, null, 0, chunk.offset, length, length, null);
     }
@@ -97,6 +126,9 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
         return Math.min(maxLength, maxCapacity()) - writerIndex;
     }
 
+    /**
+     * 调整容量大小
+     */
     @Override
     public final ByteBuf capacity(int newCapacity) {
         if (newCapacity == length) {
@@ -112,15 +144,17 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
                     return this;
                 }
             } else if (newCapacity > maxLength >>> 1 &&
+                    // 因为 Netty SubPage 最小是 16 ，如果小于等 16 ，无法缩容
+                    // > 512 (i.e. >= 1024)
                     (maxLength > 512 || newCapacity > maxLength - 16)) {
-                // here newCapacity < length
+                // here newCapacity < length，缩容处理
                 length = newCapacity;
                 trimIndicesToCapacity(newCapacity);
                 return this;
             }
         }
 
-        // Reallocation required.
+        // Reallocation required. 其他情况需要重新分配新的内存空间，并将数据复制到其中。并且，释放老的内存空间
         chunk.arena.reallocate(this, newCapacity, true);
         return this;
     }

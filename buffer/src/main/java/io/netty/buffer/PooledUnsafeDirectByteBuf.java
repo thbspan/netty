@@ -26,6 +26,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
+/**
+ * 默认情况下使用的{@link ByteBuf}类型
+ */
 final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
     private static final ObjectPool<PooledUnsafeDirectByteBuf> RECYCLER = ObjectPool.newPool(
             new ObjectCreator<PooledUnsafeDirectByteBuf>() {
@@ -60,6 +63,9 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
         initMemoryAddress();
     }
 
+    /**
+     * 初始化内存地址
+     */
     private void initMemoryAddress() {
         memoryAddress = PlatformDependent.directBufferAddress(memory) + offset;
     }

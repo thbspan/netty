@@ -299,7 +299,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
 
     /**
      * Return the underlying buffer instance if this buffer is a wrapper of another buffer.
-     *
+     * <br/>
+     * 获得被包装（wrap）的ByteBuf对象
      * @return {@code null} if this buffer is not a wrapper
      */
     public abstract ByteBuf unwrap();
