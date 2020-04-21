@@ -44,6 +44,9 @@ public class ResourceLeakDetector<T> {
 
     private static final String PROP_LEVEL_OLD = "io.netty.leakDetectionLevel";
     private static final String PROP_LEVEL = "io.netty.leakDetection.level";
+    /**
+     * 默认内存检测级别
+     */
     private static final Level DEFAULT_LEVEL = Level.SIMPLE;
 
     private static final String PROP_TARGET_RECORDS = "io.netty.leakDetection.targetRecords";
@@ -53,10 +56,14 @@ public class ResourceLeakDetector<T> {
     // There is a minor performance benefit in TLR if this is a power of 2.
     private static final int DEFAULT_SAMPLING_INTERVAL = 128;
 
+    /**
+     * 每个 DefaultResourceLeak 记录的 Record 数量
+     */
     private static final int TARGET_RECORDS;
     static final int SAMPLING_INTERVAL;
 
     /**
+     * 内存检测级别枚举
      * Represents the level of resource leak detection.
      */
     public enum Level {
@@ -165,11 +172,23 @@ public class ResourceLeakDetector<T> {
     private final Set<DefaultResourceLeak<?>> allLeaks =
             Collections.newSetFromMap(new ConcurrentHashMap<DefaultResourceLeak<?>, Boolean>());
 
+    /**
+     * 引用队列
+     */
     private final ReferenceQueue<Object> refQueue = new ReferenceQueue<Object>();
+    /**
+     * 已汇报的内存泄露的资源类型的集合
+     */
     private final Set<String> reportedLeaks =
             Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
+    /**
+     * 资源类型
+     */
     private final String resourceType;
+    /**
+     * 采集频率，默认 128
+     */
     private final int samplingInterval;
 
     /**
@@ -236,6 +255,8 @@ public class ResourceLeakDetector<T> {
     }
 
     /**
+     * 给指定的资源( 例如 ByteBuf 对象 )创建一个检查它是否泄露的{@link ResourceLeakTracker}对象
+     * <br/>
      * Creates a new {@link ResourceLeakTracker} which is expected to be closed via
      * {@link ResourceLeakTracker#close(Object)} when the related resource is deallocated.
      *
@@ -250,16 +271,22 @@ public class ResourceLeakDetector<T> {
     private DefaultResourceLeak track0(T obj) {
         Level level = ResourceLeakDetector.level;
         if (level == Level.DISABLED) {
+            // DISABLED 级别，不创建
             return null;
         }
 
         if (level.ordinal() < Level.PARANOID.ordinal()) {
-            if ((PlatformDependent.threadLocalRandom().nextInt(samplingInterval)) == 0) {
+            // SIMPLE 和 ADVANCED 级别
+            // 默认情况下 samplingInterval = 128，概率为 1 / samplingInterval，约等于 1%
+            if ((PlatformDependent.threadLocalRandom().nextInt(samplingInterval)) == 0) { // 随机
+                // 汇报内存是否泄漏
                 reportLeak();
+                // 创建 DefaultResourceLeak 对象
                 return new DefaultResourceLeak(obj, refQueue, allLeaks);
             }
             return null;
         }
+        // PARANOID 级别
         reportLeak();
         return new DefaultResourceLeak(obj, refQueue, allLeaks);
     }
@@ -284,6 +311,9 @@ public class ResourceLeakDetector<T> {
         return logger.isErrorEnabled();
     }
 
+    /**
+     * 检测是否有内存泄漏。若有，则进行汇报。
+     */
     private void reportLeak() {
         if (!needReport()) {
             clearRefQueue();
@@ -297,7 +327,9 @@ public class ResourceLeakDetector<T> {
                 break;
             }
 
+            // 清理，并返回是否内存泄露
             if (!ref.dispose()) {
+                // 未泄露，直接返回
                 continue;
             }
 
