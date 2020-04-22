@@ -124,10 +124,10 @@ final class PoolChunk<T> implements PoolChunkMetric {
      *     当申请的内存大小为 Huge 类型时，创建一整块 Chunk ，并且不拆分成若干 Page
      *
      * unpooled = false，池化 ，对应构造函数一
-     *     默认情况下，对于分配16M以内的内存空间时，Netty 会分配一个 Normal 类型的 Chunk块。
+     *     默认情况下，对于分配<=16M的内存空间时，Netty 会分配一个 Normal 类型的 Chunk块。
      *     并且，该Chunk块在使用完成后，进行池化缓存，重复使用
      * unpooled = true，非池化，对应构造函数二
-     *     默认情况下，对于分配 16M 以上的内存空间时，Netty 会分配一个 Huge 类型的特殊的 Chunk块。
+     *     默认情况下，对于分配>16M的内存空间时，Netty 会分配一个 Huge 类型的特殊的 Chunk块。
      *     并且，由于 Huge 类型的 Chunk 占用内存空间较大，比较特殊，所以该 Chunk 块在使用完后，立即释放，不进行重复使用
      */
     final boolean unpooled;
@@ -164,7 +164,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     /**
      * 判断分配请求内存是否为 Tiny/Small ，即分配 Subpage 内存块
      *
-     * 默认-8192
+     * 默认-8192 0x‭FFFFE000‬(Tiny/Small 默认最大值4K 0x00001000)
      *
      * <br/>
      * 对于小于 8K 字节的申请，求 subpageOverflowMask & length 都等于 0
