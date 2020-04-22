@@ -32,7 +32,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
      */
     private final boolean disableLeakDetector;
     /**
-     * 不使用 `io.netty.util.internal.Cleaner` 释放 Direct ByteBuf
+     * 不使用 `io.netty.util.internal.Cleaner` 来释放 Direct ByteBuf
      *
      * 默认为 true
      * @see UnpooledUnsafeNoCleanerDirectByteBuf

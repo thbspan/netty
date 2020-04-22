@@ -30,6 +30,9 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
     static final int DEFAULT_INITIAL_CAPACITY = 256;
     static final int DEFAULT_MAX_CAPACITY = Integer.MAX_VALUE;
     static final int DEFAULT_MAX_COMPONENTS = 16;
+    /**
+     * 扩容分界线 4M
+     */
     static final int CALCULATE_THRESHOLD = 1048576 * 4; // 4 MiB page
 
     static {
@@ -80,7 +83,13 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return buf;
     }
 
+    /**
+     * 是否倾向创建 Direct ByteBuf
+     */
     private final boolean directByDefault;
+    /**
+     * 空 ByteBuf 缓存
+     */
     private final ByteBuf emptyBuf;
 
     /**
@@ -264,6 +273,7 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         // If over threshold, do not double but just increase by threshold.
         if (minNewCapacity > threshold) {
             int newCapacity = minNewCapacity / threshold * threshold;
+            // 结合else代码部分来看更好理解，newCapacity + threshold 不能超过 maxCapacity
             if (newCapacity > maxCapacity - threshold) {
                 newCapacity = maxCapacity;
             } else {

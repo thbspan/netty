@@ -48,6 +48,8 @@ public interface ByteBufAllocator {
     ByteBuf ioBuffer();
 
     /**
+     * 创建一个用于 IO 操作的 ByteBuf 对象。倾向于 Direct ByteBuf(如果有unsafe)，因为对于 IO 操作来说，性能更优
+     * <br />
      * Allocate a {@link ByteBuf}, preferably a direct buffer which is suitable for I/O.
      */
     ByteBuf ioBuffer(int initialCapacity);

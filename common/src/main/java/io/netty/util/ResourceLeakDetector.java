@@ -188,6 +188,8 @@ public class ResourceLeakDetector<T> {
     private final String resourceType;
     /**
      * 采集频率，默认 128
+     *
+     * @see #DEFAULT_SAMPLING_INTERVAL
      */
     private final int samplingInterval;
 
